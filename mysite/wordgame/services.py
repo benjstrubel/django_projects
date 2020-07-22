@@ -2,6 +2,7 @@ import random
 from scipy.spatial.distance import cosine
 import socket
 import struct
+import re
 import datetime
 from .models import Blurb
 from django.contrib.sessions.backends.db import SessionStore
@@ -117,10 +118,11 @@ class NLPServices:
 
         notdone = True
         time = datetime.datetime.now().timestamp()
+        replaced_word = re.compile('%?%')
         while(notdone):
             idx = random.randrange(0,max)
-            if(json_text[idx]['POS'] in VALID_TAGS):
-                json_text[idx]['word'] = "{{0}}".format(x)
+            if(json_text[idx]['POS'] in VALID_TAGS and not re.match(replaced_word,json_text[idx]['word'])):
+                json_text[idx]['word'] = "%{0}%".format(x)
                 notdone = False
             if datetime.datetime.now().timestamp()-time > MAXLOOPTIME:
                 notdone = False
