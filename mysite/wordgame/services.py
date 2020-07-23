@@ -2,50 +2,75 @@ import random
 from scipy.spatial.distance import cosine
 import socket
 import struct
-import re
+import json
 import datetime
 from .models import Blurb
 from django.contrib.sessions.backends.db import SessionStore
 
 class PrefVector:
-    INCREMENT = .1
-    dict = {}
+    INCREMENT = .2
 
-    def __init__(self):
-        self.dict['entertainment'] = 0.01
-        self.dict['health'] = 0.01
-        self.dict['politics'] = 0.01
-        self.dict['sports'] =0.01
-        self.dict['tech'] = 0.01
+    @staticmethod
+    def record_vote(prefvector, category, vote):
+        print("prefvector class got vote as",vote)
+        #record vote
+        if vote == "1":
+            print("voting 1...")
+            prefvector = PrefVector.like(prefvector, category)
+        elif vote == "0":
+            prefvector = PrefVector.dislike(prefvector, category)
+        return prefvector
 
-    def like(self,category):
-        self.dict[category] += self.INCREMENT
+    @staticmethod
+    def like(pv, category):
+        pv[category] += PrefVector.INCREMENT
+        if pv[category] > 1:
+            pv[category] = 1
+        return pv
 
-    def get_as_vector(self):
+    @staticmethod
+    def dislike(pv, category):
+        pv[category] -= PrefVector.INCREMENT
+        if pv[category] < 0:
+            pv[category] = 0
+        return pv
+
+    @staticmethod
+    def get_as_vector(prefvector):
         #hardcoding to make sure order is correct
         v = list()
-        v.append(self.dict['entertainment'])
-        v.append(self.dict['health'])
-        v.append(self.dict['politics'])
-        v.append(self.dict['sports'])
-        v.append(self.dict['tech'])
+        v.append(prefvector['entertainment'])
+        v.append(prefvector['health'])
+        v.append(prefvector['politics'])
+        v.append(prefvector['sports'])
+        v.append(prefvector['tech'])
         return v
-
 
 
 class BlurbServices:
 
+    def get_highest_cat(self, blurb):
+        sv = blurb.scorevector
+
+        #horrible code :(
+        vect = [sv.entertainment_score,sv.health_score,sv.politics_score,sv.sports_score,sv.tech_score]
+        cats = ["entertainment","health","politics","sports","tech"]
+        maxcat = cats[vect.index(min(vect))]
+        return maxcat
+
     def get_blurb(self, pref_vector):
+
         #get pref vector from session
-        pref_vector = [0,0,1,0,0]
+        pref_vector = [0,0,0,1,0]
 
         #store pk_id:cosine_sim_score
         sim_scores = {}
 
         #calc all cosine sim scores
-        #TODO: rewrite to use heap to avoid sorting entire set at end
+        #TODO: rewrite to use heap to avoid sorting entire set at end?
         for blurb in Blurb.objects.all():
-            blurb_vector = [blurb.entertainment_score,blurb.health_score,blurb.politics_score,blurb.sports_score,blurb.tech_score]
+            sv = blurb.scorevector
+            blurb_vector = [sv.entertainment_score,sv.health_score,sv.politics_score,sv.sports_score,sv.tech_score]
             cosine_sim_score = 1 - cosine(pref_vector,blurb_vector)
             sim_scores[blurb.pk] = cosine_sim_score
 
@@ -57,13 +82,15 @@ class BlurbServices:
         pk = next(iter(sorted_sim_scores))[0]
 
         blurb = Blurb.objects.get(pk=pk)
-        return blurb.text
+        return blurb
 
+    def process_blurb(self, blurb):
+        #nlp text
+        nlp = NLPServices()
+        jsontext = json.loads(nlp.get_pos_tags(blurb.text))
+        jsontext = nlp.prep_blurb(jsontext)
 
-class Preferences:
-    def update_prefs(self):
-        SessionStore
-        pass
+        return jsontext
 
 class Message:
     @staticmethod
@@ -111,18 +138,18 @@ class NLPServices:
             json_text = self.replace_pos(json_text)
         return json_text
 
-    def replace_pos(self,json_text,x):
+    def replace_pos(self,json_text):
         MAXLOOPTIME = 2
         VALID_TAGS = ['NOUN', 'VERB', 'PROPN', 'ADV', 'ADJ', 'NUM']
-        max = len(json_text)-1
+        max = len(json_text['words'])-1
 
         notdone = True
         time = datetime.datetime.now().timestamp()
-        replaced_word = re.compile('%?%')
+
         while(notdone):
             idx = random.randrange(0,max)
-            if(json_text[idx]['POS'] in VALID_TAGS and not re.match(replaced_word,json_text[idx]['word'])):
-                json_text[idx]['word'] = "%{0}%".format(x)
+            if(json_text['pos'][idx] in VALID_TAGS and json_text['words'][idx] != "%%%"):
+                json_text['words'][idx] = "%%%"
                 notdone = False
             if datetime.datetime.now().timestamp()-time > MAXLOOPTIME:
                 notdone = False

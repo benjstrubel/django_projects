@@ -5,7 +5,7 @@ class Blurb(models.Model):
     text = models.TextField()
 
 class ScoreVector(models.Model):
-    blurb = models.ForeignKey(Blurb, on_delete=models.CASCADE)
+    blurb = models.OneToOneField(Blurb, on_delete=models.CASCADE)
     entertainment_score = models.FloatField()
     health_score = models.FloatField()
     politics_score = models.FloatField()

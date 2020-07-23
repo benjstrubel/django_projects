@@ -1,2 +1,117 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <title>Generic Non-Trademarked Word Replacement Game</title>
+  <meta name="description" content="html">
+  <meta name="author" content="Ben">
+</head>
+{{ blurb|json_script:"blurbtext"}}
+<script type="text/javascript">
+function createRGBFromScore(score) {
+    var inv = 1 - score;
+    var c = Math.ceil(inv * 255).toString();
+    return "rgb(" + c + "," + c + "," + c + ")";
+}
+
+function setAScoreVectorColor(name) {
+    var div = document.getElementById(name);
+    var score = div.getAttribute("data-score");
+    console.log(score);
+    rgb = createRGBFromScore(score)
+    div.setAttribute("style", "color: " + rgb + ";");
+}
+
+function setScoreVectorColors() {
+    setAScoreVectorColor("ev");
+    setAScoreVectorColor("hv");
+    setAScoreVectorColor("pv");
+    setAScoreVectorColor("sv");
+    setAScoreVectorColor("tv");
+}
+
+function showCreation() {
+    var sent = "";
+    const textlist = JSON.parse(document.getElementById("blurbtext").textContent);
+    for(var i = 0; i < textlist.length; ++ i) {
+        if (textlist[i] == "%%%") {
+            sent += document.getElementById("input" + i.toString()).value.toString();
+        }
+        else {
+            sent += textlist[i];
+        }
+        sent += " ";
+    }
+    console.log(sent);
+    e = document.getElementById("finishedCreationText");
+    e.innerHTML = sent;
+}
+</script>
+<body onLoad="setScoreVectorColors()">
+    {{ blurb }}
 <h1>Word Game</h1>
-{{ blurb }}
+<div id="newUser">
+    <h3>Howdy, You seem like you're new here. What's your favorite topic?</h3>
+    <button id="entertainment" value="entertainment">Entertainment</button>
+    <button id="health" value="health">Health</button>
+    <button id="politics" value="politics">Politics</button>
+    <button id="sports" value="sports">Sports</button>
+    <button id="tech" value="tech">Technology</button>
+    <br>
+    <br>
+</div>
+<div id="mainScreen">
+<div id="scoreVector">
+    <table>
+        <tr>
+            <td>
+                <div id="ev" data-score="{{ scorevector.entertainment_score}}">Entertainment</div>
+            </td>
+            <td>
+                <div id="hv" data-score="{{ scorevector.health_score }}">Health</div>
+            </td>
+            <td>
+                <div id="pv" data-score="{{ scorevector.politics_score }}">Politics</div>
+            </td>
+            <td>
+                <div id="sv" data-score="{{ scorevector.sports_score }}">Sports</div>
+            </td>
+            <td>
+                <div id="tv" data-score="{{ scorevector.tech_score }}">Technology</div>
+            </td>
+    </tr>
+    </table>
+    <br>
+</div>
+    <br>
+    {% for word,pos in blurbzip %}
+    {% if word == "%%%" %}
+    {{pos}}<input type="text" id="input{{forloop.counter0 }}"><br>
+    {% endif %}
+    {% endfor %}
+    <br>
+<br>
+<br>
+<button id="showBlurb" value="showBlurb" onClick="showCreation()">Show Me My Hilarious Creation!</button>
+<br>
+</div>
+<div id="creationScreen">
+<br>
+<div id="finishedCreationText"></div>
+<br>
+</div>
+<div id ="feedbackScreen">
+<h3>So, what do you think?</h3>
+<form action="{% url 'vote' %}" method="POST">
+    {% csrf_token %} 
+<input type="hidden" name="blurb_id" id="upblurb_id" value="{{blurb_id}}">
+<button name="vote" id="upvote" value="1">Cool!</button>
+</form>
+<button name="downvote" id="vote" value="0">I didn't like the topic.</button>
+<br>
+</div>
+<div id ="currentBlurbScreen">
+Tired of these older stories? <a href="">Click here to get a current headline.</a>
+</div>
+</body>
+</html>
