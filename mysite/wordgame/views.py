@@ -1,9 +1,8 @@
 from django.http import HttpResponseRedirect
 from django.shortcuts import render, get_object_or_404
-import feedparser
 import random
 import json
-from .services import NLPServices, PrefVector
+from .services import NLPServices, PrefVector, CurrentHeadlineServices
 from .services import BlurbServices
 from .models import Blurb
 from .models import ScoreVector
@@ -22,15 +21,48 @@ def index(request):
     b = BlurbServices()
     blurb = b.get_blurb(prefvector)
     sv = blurb.scorevector
+    sv_dict = {
+        "entertainment" : sv.entertainment_score,
+        "health" : sv.health_score,
+        "politics" : sv.politics_score,
+        "sports" : sv.sports_score,
+        "tech" : sv.tech_score
+    }
     jsontext = b.process_blurb(blurb)
+    n = NLPServices()
+    jsontext = n.prep_blurb(jsontext)
 
     context = {
         'blurbzip' : zip(jsontext['words'],jsontext['pos']),
         'blurb' : jsontext['words'],
         'blurb_id' : blurb.id,
-        'scorevector' : sv
+        'scorevector' : sv_dict
     }
     return render(request, 'wordgame/index.html', context)
+
+def current_headline(request):
+    prefvector = get_or_create_prefvector()
+    #get highest cat
+    maxcat = "health"
+
+    #get headline for that cat
+    c = CurrentHeadlineServices()
+    text = c.get_current_headline(maxcat)
+
+    #classify headline
+    n = NLPServices()
+    score_vector =n.classify_headline(text)
+
+    #pos tag headline text
+    jsontext = n.tag_blurb(text)
+    context = {
+        'blurbzip' : zip(jsontext['words'],jsontext['pos']),
+        'blurb' : jsontext['words'],
+        'blurb_id' : -1,
+        'scorevector' : score_vector
+    }
+    return render(request, 'wordgame/index.html', context)
+
 
 def get_or_create_prefvector(request):
     prefvector = request.session.get('prefvector')

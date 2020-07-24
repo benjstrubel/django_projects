@@ -55,19 +55,19 @@ function showCreation() {
     <table>
         <tr>
             <td>
-                <div id="ev" data-score="{{ scorevector.entertainment_score}}">Entertainment</div>
+                <div id="ev" data-score="{{ scorevector.entertainment}}">Entertainment</div>
             </td>
             <td>
-                <div id="hv" data-score="{{ scorevector.health_score }}">Health</div>
+                <div id="hv" data-score="{{ scorevector.health}}">Health</div>
             </td>
             <td>
-                <div id="pv" data-score="{{ scorevector.politics_score }}">Politics</div>
+                <div id="pv" data-score="{{ scorevector.politics }}">Politics</div>
             </td>
             <td>
-                <div id="sv" data-score="{{ scorevector.sports_score }}">Sports</div>
+                <div id="sv" data-score="{{ scorevector.sports }}">Sports</div>
             </td>
             <td>
-                <div id="tv" data-score="{{ scorevector.tech_score }}">Technology</div>
+                <div id="tv" data-score="{{ scorevector.tech }}">Technology</div>
             </td>
     </tr>
     </table>
@@ -95,6 +95,7 @@ function showCreation() {
 <form action="{% url 'vote' %}" method="POST">
     {% csrf_token %} 
 <input type="hidden" name="blurb_id" id="upblurb_id" value="{{blurb_id}}">
+    <input type="hidden" name="sv" id="score_vector" value="{{scorevector}}">
 <button name="upvote" id="upvote" value="1">Cool!</button>
 <button name="downvote" id="downvote" value="0">I didn't like the topic.</button>
     </form>

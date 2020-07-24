@@ -62,16 +62,6 @@ class CurrentHeadlineServices:
         text = entry.title + ". " + entry.summary.split("<div")[0] + "."
         return text
 
-    def nlp_the_headline(self, text):
-        #nlp = NLPServices()
-        dict = {
-            "cmd" : "classify",
-            "msg" : text
-        }
-        msg = json.loads(dict)
-        pass
-
-
 class BlurbServices:
     def get_highest_cat(self, blurb):
         sv = blurb.scorevector
@@ -83,14 +73,6 @@ class BlurbServices:
         maxcat = cats[vect.index(max(vect))]
         print("max cat is:",maxcat)
         return maxcat
-
-    def get_current_headline(self, prefvector):
-
-        blurb = ""
-
-
-
-        return blurb
 
     def get_blurb(self, prefvector):
         #store pk_id:cosine_sim_score
@@ -117,8 +99,7 @@ class BlurbServices:
     def process_blurb(self, blurb):
         #nlp text
         nlp = NLPServices()
-        jsontext = json.loads(nlp.get_pos_tags(blurb.text))
-        jsontext = nlp.prep_blurb(jsontext)
+        jsontext = nlp.tag_blurb(blurb.text)
         return jsontext
 
 class Message:
@@ -136,7 +117,25 @@ class Message:
         return Message.encode_msg_size(size) + content_bytes
 
 class NLPServices:
-    def get_pos_tags(self, text):
+    def classify_headline(self, text):
+        dict = {
+            "cmd" : "classify",
+            "payload" : text
+        }
+        msg = json.dumps(dict)
+        text_score_vector = self.send_and_recv_msg(msg)
+        return json.loads(text_score_vector)
+
+    def tag_blurb(self, text):
+        dict = {
+            "cmd" : "postag",
+            "payload" : text
+        }
+        msg = json.dumps(dict)
+        tagged_blurb = self.send_and_recv_msg(msg)
+        return json.loads(tagged_blurb)
+
+    def send_and_recv_msg(self, text):
         sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         server_address = ('127.0.0.1', 9999)
 
