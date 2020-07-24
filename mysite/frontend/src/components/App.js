@@ -89,6 +89,7 @@ function UserInput(props) {
 
 function ShowResult(props) {
     console.log("showing result");
+    App.
     return(
         <div>
         I'm a result

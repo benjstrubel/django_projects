@@ -1,23 +1,24 @@
 import random
+
+import feedparser
 from scipy.spatial.distance import cosine
 import socket
 import struct
 import json
 import datetime
 from .models import Blurb
-from django.contrib.sessions.backends.db import SessionStore
 
 class PrefVector:
     INCREMENT = .2
 
     @staticmethod
     def record_vote(prefvector, category, vote):
-        print("prefvector class got vote as",vote)
         #record vote
         if vote == "1":
             print("voting 1...")
             prefvector = PrefVector.like(prefvector, category)
         elif vote == "0":
+            print("voting 0...")
             prefvector = PrefVector.dislike(prefvector, category)
         return prefvector
 
@@ -46,23 +47,52 @@ class PrefVector:
         v.append(prefvector['tech'])
         return v
 
+class CurrentHeadlineServices:
+
+    def get_current_headline(self, category):
+        urls = {
+            "entertainment" : "http://rss.cnn.com/rss/cnn_showbiz.rss",
+            "health" : "http://rss.cnn.com/rss/cnn_health.rss",
+            "politics" : "http://rss.cnn.com/rss/cnn_allpolitics.rss",
+            "sports" : "https://www.cbssports.com/rss/headlines/",
+            "technology" : "http://rss.cnn.com/rss/cnn_tech.rss"
+        }
+        feed = feedparser.parse(urls[category])
+        entry = feed.entries[random.randrange(0,len(feed.entries))]
+        text = entry.title + ". " + entry.summary.split("<div")[0] + "."
+        return text
+
+    def nlp_the_headline(self, text):
+        #nlp = NLPServices()
+        dict = {
+            "cmd" : "classify",
+            "msg" : text
+        }
+        msg = json.loads(dict)
+        pass
+
 
 class BlurbServices:
-
     def get_highest_cat(self, blurb):
         sv = blurb.scorevector
 
         #horrible code :(
         vect = [sv.entertainment_score,sv.health_score,sv.politics_score,sv.sports_score,sv.tech_score]
+        print("finding max cat for this blurb vector:", vect)
         cats = ["entertainment","health","politics","sports","tech"]
-        maxcat = cats[vect.index(min(vect))]
+        maxcat = cats[vect.index(max(vect))]
+        print("max cat is:",maxcat)
         return maxcat
 
-    def get_blurb(self, pref_vector):
+    def get_current_headline(self, prefvector):
 
-        #get pref vector from session
-        pref_vector = [0,0,0,1,0]
+        blurb = ""
 
+
+
+        return blurb
+
+    def get_blurb(self, prefvector):
         #store pk_id:cosine_sim_score
         sim_scores = {}
 
@@ -71,7 +101,7 @@ class BlurbServices:
         for blurb in Blurb.objects.all():
             sv = blurb.scorevector
             blurb_vector = [sv.entertainment_score,sv.health_score,sv.politics_score,sv.sports_score,sv.tech_score]
-            cosine_sim_score = 1 - cosine(pref_vector,blurb_vector)
+            cosine_sim_score = 1 - cosine(prefvector,blurb_vector)
             sim_scores[blurb.pk] = cosine_sim_score
 
         #order by cosine sim scores and get random high score
@@ -89,7 +119,6 @@ class BlurbServices:
         nlp = NLPServices()
         jsontext = json.loads(nlp.get_pos_tags(blurb.text))
         jsontext = nlp.prep_blurb(jsontext)
-
         return jsontext
 
 class Message:
@@ -107,10 +136,7 @@ class Message:
         return Message.encode_msg_size(size) + content_bytes
 
 class NLPServices:
-
     def get_pos_tags(self, text):
-        #connect to our nlp service
-
         sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         server_address = ('127.0.0.1', 9999)
 
@@ -133,8 +159,7 @@ class NLPServices:
 
     def prep_blurb(self, json_text):
         WORD_REPLACE_COUNT = 3
-
-        for x in range(0,WORD_REPLACE_COUNT-1):
+        for x in range(0,WORD_REPLACE_COUNT):
             json_text = self.replace_pos(json_text)
         return json_text
 

@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Title</title>
+</head>
+<body>
+<h1>Word Game</h1>
+<div id="newUser">
+    <h3>Howdy, You seem like you're new here. What's your favorite topic?</h3>
+    <form action="{% url 'init' %}" method="POST">
+        {% csrf_token %}
+        <input type="radio" id="entertainment" name="category" value="entertainment">
+        <label>Entertainment</label>
+        <input type="radio" id="health" name="category" value="health">
+        <label>Health</label>
+        <input type="radio" id="politics" name="category" value="politics">
+        <label>Politics</label>
+        <input type="radio" id="sports" name="category" value="sports">
+        <label>Sports</label>
+        <input type="radio" id="tech" name="category" value="tech">
+        <label>Technology</label>
+        <br>
+        <br>
+    <button type="submit" name="submit" value="submit">Let's Do This!</button>
+    </form>
+    <br>
+    <br>
+</div>
+</body>
+</html>

@@ -50,16 +50,6 @@ function showCreation() {
 <body onLoad="setScoreVectorColors()">
     {{ blurb }}
 <h1>Word Game</h1>
-<div id="newUser">
-    <h3>Howdy, You seem like you're new here. What's your favorite topic?</h3>
-    <button id="entertainment" value="entertainment">Entertainment</button>
-    <button id="health" value="health">Health</button>
-    <button id="politics" value="politics">Politics</button>
-    <button id="sports" value="sports">Sports</button>
-    <button id="tech" value="tech">Technology</button>
-    <br>
-    <br>
-</div>
 <div id="mainScreen">
 <div id="scoreVector">
     <table>
@@ -105,9 +95,9 @@ function showCreation() {
 <form action="{% url 'vote' %}" method="POST">
     {% csrf_token %} 
 <input type="hidden" name="blurb_id" id="upblurb_id" value="{{blurb_id}}">
-<button name="vote" id="upvote" value="1">Cool!</button>
-</form>
-<button name="downvote" id="vote" value="0">I didn't like the topic.</button>
+<button name="upvote" id="upvote" value="1">Cool!</button>
+<button name="downvote" id="downvote" value="0">I didn't like the topic.</button>
+    </form>
 <br>
 </div>
 <div id ="currentBlurbScreen">
