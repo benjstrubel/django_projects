@@ -1,3 +1,5 @@
+import json
+
 from django.db import models
 
 # Create your models here.
@@ -11,4 +13,14 @@ class ScoreVector(models.Model):
     politics_score = models.FloatField()
     sports_score = models.FloatField()
     tech_score = models.FloatField()
+
+    def __str__(self):
+        sv_dict = {
+            "entertainment": self.entertainment_score,
+            "health": self.health_score,
+            "politics": self.politics_score,
+            "sports": self.sports_score,
+            "tech": self.tech_score
+        }
+        return json.dumps(sv_dict)
 

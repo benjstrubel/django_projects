@@ -1,5 +1,4 @@
 import random
-
 import feedparser
 from scipy.spatial.distance import cosine
 import socket

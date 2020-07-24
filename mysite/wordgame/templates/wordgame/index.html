@@ -45,6 +45,9 @@ function showCreation() {
     console.log(sent);
     e = document.getElementById("finishedCreationText");
     e.innerHTML = sent;
+
+    e = document.getElementById("creationScreen");
+    e.setAttribute("style","display:block");
 }
 </script>
 <body onLoad="setScoreVectorColors()">
@@ -85,24 +88,25 @@ function showCreation() {
 <button id="showBlurb" value="showBlurb" onClick="showCreation()">Show Me My Hilarious Creation!</button>
 <br>
 </div>
-<div id="creationScreen">
+<div id="creationScreen" style="display:none;">
 <br>
 <div id="finishedCreationText"></div>
 <br>
-</div>
-<div id ="feedbackScreen">
+    <div id ="feedbackScreen">
 <h3>So, what do you think?</h3>
 <form action="{% url 'vote' %}" method="POST">
-    {% csrf_token %} 
+    {% csrf_token %}
 <input type="hidden" name="blurb_id" id="upblurb_id" value="{{blurb_id}}">
     <input type="hidden" name="sv" id="score_vector" value="{{scorevector}}">
 <button name="upvote" id="upvote" value="1">Cool!</button>
 <button name="downvote" id="downvote" value="0">I didn't like the topic.</button>
     </form>
-<br>
 </div>
+</div>
+
 <div id ="currentBlurbScreen">
-Tired of these older stories? <a href="">Click here to get a current headline.</a>
+    <br>
+Tired of these older stories? <a href="{% url 'current' %}">Click here to get a current headline.</a>
 </div>
 </body>
 </html>

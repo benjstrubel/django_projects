@@ -1,3 +1,4 @@
+import operator
 from django.http import HttpResponseRedirect
 from django.shortcuts import render, get_object_or_404
 import random
@@ -21,13 +22,7 @@ def index(request):
     b = BlurbServices()
     blurb = b.get_blurb(prefvector)
     sv = blurb.scorevector
-    sv_dict = {
-        "entertainment" : sv.entertainment_score,
-        "health" : sv.health_score,
-        "politics" : sv.politics_score,
-        "sports" : sv.sports_score,
-        "tech" : sv.tech_score
-    }
+
     jsontext = b.process_blurb(blurb)
     n = NLPServices()
     jsontext = n.prep_blurb(jsontext)
@@ -36,25 +31,26 @@ def index(request):
         'blurbzip' : zip(jsontext['words'],jsontext['pos']),
         'blurb' : jsontext['words'],
         'blurb_id' : blurb.id,
-        'scorevector' : sv_dict
+        'scorevector' : str(sv)
     }
     return render(request, 'wordgame/index.html', context)
 
 def current_headline(request):
-    prefvector = get_or_create_prefvector()
-    #get highest cat
-    maxcat = "health"
+    prefvector = get_or_create_prefvector(request)
+    maxcategory = max(prefvector.items(), key=operator.itemgetter(1))[0]
 
     #get headline for that cat
     c = CurrentHeadlineServices()
-    text = c.get_current_headline(maxcat)
+    text = c.get_current_headline(maxcategory)
 
     #classify headline
     n = NLPServices()
     score_vector =n.classify_headline(text)
+    print("score vector from nlp server is:", score_vector)
 
     #pos tag headline text
     jsontext = n.tag_blurb(text)
+    jsontext = n.prep_blurb(jsontext)
     context = {
         'blurbzip' : zip(jsontext['words'],jsontext['pos']),
         'blurb' : jsontext['words'],
@@ -68,7 +64,7 @@ def get_or_create_prefvector(request):
     prefvector = request.session.get('prefvector')
     print("prefvector is: ", prefvector)
     if prefvector is None or len(prefvector) == 0:
-        print("bad pref vector reseting...")
+        print("bad or missing pref vector, resetting...")
         prefvector ={"entertainment" : .5, "health" : .5, "politics" : .5, "sports" : .5, "tech" : .5}
     else:
         prefvector = json.loads(prefvector)
@@ -92,12 +88,19 @@ def initialvote(request):
 
 def vote(request):
     prefvector = get_or_create_prefvector(request)
+    sv = request.POST["sv"]
+    sv = sv.replace("'",'"')
+    sv = json.loads(sv)
 
-    b = BlurbServices()
-    blurb = get_object_or_404(Blurb, pk=request.POST['blurb_id'])
-    # get highest category
-    maxcategory = b.get_highest_cat(blurb)
-    print("max category is: ", maxcategory)
+    if request.POST['blurb_id'] != "-1":
+        b = BlurbServices()
+        blurb = get_object_or_404(Blurb, pk=request.POST['blurb_id'])
+        # get highest category
+        maxcategory = b.get_highest_cat(blurb)
+        print("max category is: ", maxcategory)
+    else:
+        maxcategory = max(sv.items(), key=operator.itemgetter(1))[0]
+        print("max category is: " , maxcategory)
 
     #get their up/down vote
     if request.POST.get('upvote'):
