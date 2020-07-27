@@ -1,25 +1,72 @@
 <!doctype html>
 <html lang="en">
+    {% load static %}
 <head>
   <meta charset="utf-8">
   <title>Generic Non-Trademarked Word Replacement Game</title>
   <meta name="description" content="html">
   <meta name="author" content="Ben">
+      <!-- CSS from getbootstrap.com -->
+    <!-- icons from feathericons.com/ -->
+    <link rel='stylesheet' type='text/css' media='screen' href='{% static "wordgame/css/bootstrap.min.css" %}'>
 </head>
 {{ blurb|json_script:"blurbtext"}}
 <script type="text/javascript">
+    window.addEventListener('DOMContentLoaded', () => {
+    const csrf_token = console.log( document.getElementById('csrfHelper').value);
+    //promise
+    navigator.mediaDevices.getUserMedia({audio:true}).then(stream => {handlerFunction(stream)})
+    const recordButton = document.getElementById('startRecord');
+    
+   startRecord.onclick = e => {
+        console.log("start record clicked");
+        audioChunks = [];
+        rec.start();
+    }
+
+    stopRecord.onclick = e => {
+        console.log("stop record clicked");
+        rec.stop();
+    }
+
+    function handlerFunction(stream) {
+        rec = new MediaRecorder(stream);
+        //execute callback on audio available
+        rec.ondataavailable = e => {
+            audioChunks.push(e.data);
+            //called when done
+            if(rec.state == "inactive") {
+                let blob = new Blob(audioChunks, { 'type': 'audio/ogg; codecs=opus' });
+                //blob is made now send to django post
+                //post goes here
+                console.log("blob's done! POSTing...")
+                //post
+                let data = new FormData;
+                data.append("audioRecording", blob);
+                data.append('csrfmiddlewaretoken', csrf_token);
+                fetch("/wordgame/audio/", {method:"POST",
+                headers: { "X-CSRFToken": csrf_token },
+                body:data,
+                credentials:'same-origin', })
+            }
+
+        }
+    }
+     });
+    </script>
+<script type="text/javascript">
 function createRGBFromScore(score) {
     var inv = 1 - score;
-    var c = Math.ceil(inv * 255).toString();
+    var c= Math.ceil(inv * 255).toString();
     return "rgb(" + c + "," + c + "," + c + ")";
 }
 
 function setAScoreVectorColor(name) {
-    var div = document.getElementById(name);
-    var score = div.getAttribute("data-score");
+    var td = document.getElementById(name);
+    var score = td.getAttribute("data-score");
     console.log(score);
     rgb = createRGBFromScore(score)
-    div.setAttribute("style", "color: " + rgb + ";");
+    td.setAttribute("style", "color: " + rgb + ";");
 }
 
 function setScoreVectorColors() {
@@ -43,70 +90,123 @@ function showCreation() {
         sent += " ";
     }
     console.log(sent);
-    e = document.getElementById("finishedCreationText");
-    e.innerHTML = sent;
+    e = document.getElementById("creationText");
+    e.innerHTML = "<h5>" + sent + "</h5>";
 
-    e = document.getElementById("creationScreen");
+    e = document.getElementById("showCreationToggle");
     e.setAttribute("style","display:block");
+
+    //e = document.getElementById("userInputToggle");
+    //e.setAttribute("style", "display:None");
 }
 </script>
-<body onLoad="setScoreVectorColors()">
+
+
+<body onload="setScoreVectorColors()">
     {{ blurb }}
-<h1>Word Game</h1>
-<div id="mainScreen">
-<div id="scoreVector">
-    <table>
-        <tr>
-            <td>
-                <div id="ev" data-score="{{ scorevector.entertainment}}">Entertainment</div>
-            </td>
-            <td>
-                <div id="hv" data-score="{{ scorevector.health}}">Health</div>
-            </td>
-            <td>
-                <div id="pv" data-score="{{ scorevector.politics }}">Politics</div>
-            </td>
-            <td>
-                <div id="sv" data-score="{{ scorevector.sports }}">Sports</div>
-            </td>
-            <td>
-                <div id="tv" data-score="{{ scorevector.tech }}">Technology</div>
-            </td>
-    </tr>
+    <div class="container" id="heading">
+    <h1 class="text-primary">Generic Non-Trademarked Word Replacement Game*</h1>
+    <h5>Now with machine learning and a British accent!</h5>
+    <br>
+    </div>
+    <div class="container" id="scorebar">
+    <table class="table table-bordered">
+        <thead>
+        <tbody>
+            <tr>
+                <td id="ev" data-score="{{ scorevector.entertainment}}">Entertainment</td>
+                <td id="hv" data-score="{{ scorevector.health}}">Health</td>
+                <td id="pv" data-score="{{ scorevector.politics}}">Politics</td>
+                <td id="sv" data-score="{{ scorevector.sports}}">Sports</td>
+                <td id="tv" data-score="{{ scorevector.tech}}">Technology</td>
+            </tr>
+        </tbody>
+</table>
+<br>
+</div>
+<div id="userInputToggle">
+<div class="container" id="userinput">
+    <h5>Fill in your words for the parts of speech below</h5>
+    <table class="table table-borderless">
+        <thead>
+            <tr>
+                <th>Part of Speech</th>
+                <th>Your Word</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for word,pos in blurbzip %}
+            {% if word == "%%%" %}
+            <tr>
+                <td>
+            {{pos}}
+              </td>
+              <td>
+              <input type="text" id="input{{forloop.counter0 }}">
+              </td>
+              </tr>
+            {% endif %}
+            {% endfor %}
+    </tbody>
     </table>
-    <br>
+    <h5>Ready for the big reveal?</h5>
+    <button id=seeIt class="btn btn-secondary" onClick="showCreation()">Let Me See It.</button>
+    <button id="sayIt" class="btn btn-secondary">Read It To Me!</button>
+    <br><br>   
 </div>
-    <br>
-    {% for word,pos in blurbzip %}
-    {% if word == "%%%" %}
-    {{pos}}<input type="text" id="input{{forloop.counter0 }}"><br>
-    {% endif %}
-    {% endfor %}
-    <br>
-<br>
-<br>
-<button id="showBlurb" value="showBlurb" onClick="showCreation()">Show Me My Hilarious Creation!</button>
-<br>
-</div>
-<div id="creationScreen" style="display:none;">
-<br>
-<div id="finishedCreationText"></div>
-<br>
-    <div id ="feedbackScreen">
-<h3>So, what do you think?</h3>
-<form action="{% url 'vote' %}" method="POST">
-    {% csrf_token %}
-<input type="hidden" name="blurb_id" id="upblurb_id" value="{{blurb_id}}">
-    <input type="hidden" name="sv" id="score_vector" value="{{scorevector}}">
-<button name="upvote" id="upvote" value="1">Cool!</button>
-<button name="downvote" id="downvote" value="0">I didn't like the topic.</button>
-    </form>
-</div>
+<!-- ending div for userinput toggle-->
 </div>
 
-<div id ="currentBlurbScreen">
+<!-- begin finished creation content-->
+<div id="showCreationToggle" style="display: Block">
+<div class="container " id="creation">
+    <h3 class="text-primary">Here's What You Created...</h3>
+    <div id="creationText"></div>
     <br>
-Tired of these older stories? <a href="{% url 'current' %}">Click here to get a current headline.</a>
+    <br>
 </div>
+<div class="container" id="audio">
+</div>
+<div class="container" id="feedback">
+    
+    <div class="row">
+        <div class="col-sm">
+            <h5 class="text-primary">Play Again?</h5>
+            Tell us what you thought of the topic and then we'll generate another game for you.
+            <form action="{% url 'vote' %}" method="POST">
+                {% csrf_token %}
+                <input type="hidden" name="sv" id="score_vector" value="{{scorevector}}">
+                <button type="submit" id="upvote" name="upvote" class="btn btn-outline-primary"><img src='{% static "wordgame/images/thumbs-up.svg" %}'></button>
+                <button type="submit" id="downvote" name="downvote" class="btn btn-outline-primary"><img src='{% static "wordgame/images/thumbs-down.svg" %}'></button>
+                    </form>
+        </div>
+        <div class="col-sm">
+            <h5 class="text-primary">Or Tell Me A Topic You Like</h5>
+            Click the microphone and then say a topic you like. Click the stop button when you are done.<br>
+            <button id="startRecord" name="startRecord" class="btn btn-outline-primary"><img src='{% static "wordgame/images/mic.svg" %}'></button>
+            <button id="stopRecord" name="stopRecord" class="btn btn-outline-primary"><img src='{% static "wordgame/images/stop-circle.svg" %}'></button>           
+        </div>
+        <div class="col-sm">
+            <h5 class="text-primary">Try Something A Litte Different?</h5>
+            Pick a game based on one of the following.
+            <form>
+                <button type="submit" id="current" name="current" class="btn btn-primary">Current Headline</button>
+                <button type="submit" id="local" name="local" class="btn btn-primary">Local Headline</button>
+            </form>
+        </div>
+      </div>
+</div>
+<!-- end div tag for showCreation-->
+</div>
+<div class="container" id="bottom">
+    <br>
+    <p class="text text-secondary">
+    *WARNING: Pregnant women, the elderly, and children under 10 should avoid prolonged exposure to Generic Word Game. Generic Word Game contains an unstable articifical intelligence core, which, if exposed due to rupture, should not be touched, inhaled, or looked at. Discontinue use of Generic Word Game if any of the following occurs: itching, vertigo, dizziness, tingling in extremities, loss of balance, slurred speech, temporary blindness, profuse sweating, or heart palpitations. If Generic Word Game begins to smoke, get away immediately. Seek shelter and cover head. When not in use the artificial intelligence core should be kept in it's special container and kept under refrigeration. Some ingredients are unknown. Do not taunt Generic Word Game. Generic Word Game comes with a lifetime warranty.
+</p>
+</div>
+<!-- hidden helper form for audio-->
+<form>
+   <input id="csrfHelper" type="hidden" value="{{ csrf_token }}">
+</form>
 </body>
 </html>

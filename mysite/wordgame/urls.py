@@ -6,6 +6,7 @@ urlpatterns = [
     path('current/', views.current_headline, name='current'),
     path('new/', views.newsession, name='new'),
     path('init/', views.initialvote, name='init'),
-    path('vote/', views.vote, name='vote')
+    path('vote/', views.vote, name='vote'),
+    path('audio/', views.audio, name='audio')
 ]
 

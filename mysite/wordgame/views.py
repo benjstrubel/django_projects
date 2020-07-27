@@ -1,12 +1,39 @@
 import operator
+import os
 from django.http import HttpResponseRedirect
 from django.shortcuts import render, get_object_or_404
+from django.views.decorators.csrf import csrf_exempt
 import random
 import json
 from .services import NLPServices, PrefVector, CurrentHeadlineServices
 from .services import BlurbServices
 from .models import Blurb
 from .models import ScoreVector
+from google.cloud import speech_v1
+from google.cloud.speech import types
+from google.cloud.speech import enums
+from google.oauth2 import service_account
+
+@csrf_exempt
+def audio(request):
+    #print(request.body)
+    #blob = request.body
+    #blob = request.POST['audioRecording']
+    #print(blob)
+    blob = request.FILES['audioRecording']
+    print("sound blob len", len(blob))
+    file = os.getcwd() + os.sep + "\wordgame\speechrecognition-bb13d77a6e29.json"
+    credentials = service_account.Credentials.from_service_account_file(file)
+    client = speech_v1.SpeechClient(credentials=credentials)
+    audio = types.RecognitionAudio(content=blob.read())
+    config = types.RecognitionConfig(encoding=enums.RecognitionConfig.AudioEncoding.OGG_OPUS, language_code='en-US')
+    resp = client.recognize(config, audio)
+    for alternative in resp:
+        print('Transcript: {}'.format(alternative.transcript))
+    context = {
+        'audioRecording' : blob
+    }
+    return render(request, 'wordgame/audiotest.html', context)
 
 
 def index(request):
@@ -31,7 +58,7 @@ def index(request):
         'blurbzip' : zip(jsontext['words'],jsontext['pos']),
         'blurb' : jsontext['words'],
         'blurb_id' : blurb.id,
-        'scorevector' : str(sv)
+        'scorevector' : json.loads(str(sv))
     }
     return render(request, 'wordgame/index.html', context)
 
