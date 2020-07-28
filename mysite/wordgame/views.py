@@ -5,14 +5,11 @@ from django.shortcuts import render, get_object_or_404
 from django.views.decorators.csrf import csrf_exempt
 import random
 import json
-from .services import NLPServices, PrefVector, CurrentHeadlineServices
-from .services import BlurbServices
+from .services import NLPServices, PrefVector, CurrentHeadlineServices, BlurbServices, LanguageServices
 from .models import Blurb
 from .models import ScoreVector
-from google.cloud import speech_v1
-from google.cloud.speech import types
-from google.cloud.speech import enums
-from google.oauth2 import service_account
+from .view_helpers import create_context_for_main_template, get_or_create_prefvector, get_client_ip
+
 
 @csrf_exempt
 def audio(request):
@@ -22,14 +19,11 @@ def audio(request):
     #print(blob)
     blob = request.FILES['audioRecording']
     print("sound blob len", len(blob))
-    file = os.getcwd() + os.sep + "\wordgame\speechrecognition-bb13d77a6e29.json"
-    credentials = service_account.Credentials.from_service_account_file(file)
-    client = speech_v1.SpeechClient(credentials=credentials)
-    audio = types.RecognitionAudio(content=blob.read())
-    config = types.RecognitionConfig(encoding=enums.RecognitionConfig.AudioEncoding.OGG_OPUS, language_code='en-US')
-    resp = client.recognize(config, audio)
-    for alternative in resp:
-        print('Transcript: {}'.format(alternative.transcript))
+    file = blob.read()
+
+    s = LanguageServices()
+    searchterm = s.speech_to_text(file)
+
     context = {
         'audioRecording' : blob
     }
@@ -48,19 +42,19 @@ def index(request):
     #get blurb based on user prefs
     b = BlurbServices()
     blurb = b.get_blurb(prefvector)
-    sv = blurb.scorevector
+    sv = json.loads(str(blurb.scorevector))
 
-    jsontext = b.process_blurb(blurb)
-    n = NLPServices()
-    jsontext = n.prep_blurb(jsontext)
-
-    context = {
-        'blurbzip' : zip(jsontext['words'],jsontext['pos']),
-        'blurb' : jsontext['words'],
-        'blurb_id' : blurb.id,
-        'scorevector' : json.loads(str(sv))
-    }
+    context = create_context_for_main_template(blurb.text,sv)
     return render(request, 'wordgame/index.html', context)
+
+def submit(request):
+
+    #process vote
+
+    #
+    pass
+
+
 
 def current_headline(request):
     prefvector = get_or_create_prefvector(request)
@@ -70,32 +64,17 @@ def current_headline(request):
     c = CurrentHeadlineServices()
     text = c.get_current_headline(maxcategory)
 
-    #classify headline
-    n = NLPServices()
-    score_vector =n.classify_headline(text)
-    print("score vector from nlp server is:", score_vector)
-
-    #pos tag headline text
-    jsontext = n.tag_blurb(text)
-    jsontext = n.prep_blurb(jsontext)
-    context = {
-        'blurbzip' : zip(jsontext['words'],jsontext['pos']),
-        'blurb' : jsontext['words'],
-        'blurb_id' : -1,
-        'scorevector' : score_vector
-    }
+    context = create_context_for_main_template(text)
     return render(request, 'wordgame/index.html', context)
 
 
-def get_or_create_prefvector(request):
-    prefvector = request.session.get('prefvector')
-    print("prefvector is: ", prefvector)
-    if prefvector is None or len(prefvector) == 0:
-        print("bad or missing pref vector, resetting...")
-        prefvector ={"entertainment" : .5, "health" : .5, "politics" : .5, "sports" : .5, "tech" : .5}
-    else:
-        prefvector = json.loads(prefvector)
-    return prefvector
+def local_headline(request):
+    ip = get_client_ip(request)
+    c = CurrentHeadlineServices()
+    text = c.get_local_headline(ip)
+
+    context = create_context_for_main_template(text)
+    return render(request, 'wordgame/index.html', context)
 
 def newsession(request):
     context = {}
@@ -119,15 +98,8 @@ def vote(request):
     sv = sv.replace("'",'"')
     sv = json.loads(sv)
 
-    if request.POST['blurb_id'] != "-1":
-        b = BlurbServices()
-        blurb = get_object_or_404(Blurb, pk=request.POST['blurb_id'])
-        # get highest category
-        maxcategory = b.get_highest_cat(blurb)
-        print("max category is: ", maxcategory)
-    else:
-        maxcategory = max(sv.items(), key=operator.itemgetter(1))[0]
-        print("max category is: " , maxcategory)
+    maxcategory = max(sv.items(), key=operator.itemgetter(1))[0]
+    print("max category is: " , maxcategory)
 
     #get their up/down vote
     if request.POST.get('upvote'):

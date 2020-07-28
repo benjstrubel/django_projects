@@ -1,5 +1,6 @@
 import random
 import feedparser
+import requests
 from scipy.spatial.distance import cosine
 import socket
 import struct
@@ -46,7 +47,36 @@ class PrefVector:
         v.append(prefvector['tech'])
         return v
 
+class LanguageServices:
+
+    def speech_to_text(self, bytes):
+        url = "https://eastus.stt.speech.microsoft.com/speech/recognition/conversation/cognitiveservices/v1?language=en-US"
+        headers = {
+            'Ocp-Apim-Subscription-Key': 'ad6b74669fa84e05a99f4bb2861ddaae',
+            'Content-type': 'audio/wav codecs=audio/pcm; samplerate=16000'
+        }
+        resp = requests.post(url, headers=headers, data=bytes)
+        guess = json.loads(resp.content.decode())
+        return guess["DisplayText"]
+
+
 class CurrentHeadlineServices:
+
+    def get_local_headline(self, ip):
+        url = "http://ip-api.com/json/" + ip
+        resp = requests.get(url)
+        jsontext = json.loads(resp.content.decode())
+        searchterm = jsontext['regionName'] + "," + jsontext['country']
+        text = self.get_search_headline(searchterm)
+        return text
+
+
+    def get_search_headline(self, searchterm):
+        url = "https://news.google.com/rss?q={0}&hl=en".format(searchterm)
+        feed = feedparser.parse(url)
+        entry = feed.entries[random.randrange(0, len(feed.entries))]
+        text = entry.title
+        return text
 
     def get_current_headline(self, category):
         urls = {
@@ -74,6 +104,7 @@ class BlurbServices:
         return maxcat
 
     def get_blurb(self, prefvector):
+        print("finding blurb for this prefector:",prefvector)
         #store pk_id:cosine_sim_score
         sim_scores = {}
 
