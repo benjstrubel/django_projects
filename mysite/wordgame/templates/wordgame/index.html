@@ -9,6 +9,7 @@
       <!-- CSS from getbootstrap.com -->
     <!-- icons from feathericons.com/ -->
     <link rel='stylesheet' type='text/css' media='screen' href='{% static "wordgame/css/bootstrap.min.css" %}'>
+    <script src='{% static "wordgame/js/recorder.js" %}'></script>
 </head>
 {{ blurb|json_script:"blurbtext"}}
 <script type="text/javascript">
@@ -31,55 +32,13 @@
     function postForm() {
         let fd = new FormData;
         //score vector
-        fd.append("score_vector",score_vector.value)
+        fd.append("score_vector",score_vector.value);
         //vote
 
         //submission type
 
 
     }
-
-    window.addEventListener('DOMContentLoaded', () => {
-    const csrf_token = console.log( document.getElementById('csrfHelper').value);
-    //promise
-    navigator.mediaDevices.getUserMedia({audio:true}).then(stream => {handlerFunction(stream)})
-    const recordButton = document.getElementById('startRecord');
-    
-   startRecord.onclick = e => {
-        console.log("start record clicked");
-        audioChunks = [];
-        rec.start();
-    }
-
-    stopRecord.onclick = e => {
-        console.log("stop record clicked");
-        rec.stop();
-    }
-
-    function handlerFunction(stream) {
-        rec = new MediaRecorder(stream);
-        //execute callback on audio available
-        rec.ondataavailable = e => {
-            audioChunks.push(e.data);
-            //called when done
-            if(rec.state == "inactive") {
-                let blob = new Blob(audioChunks, { 'type': 'audio/ogg; codecs=opus' });
-                //blob is made now send to django post
-                //post goes here
-                console.log("blob's done! POSTing...")
-                //post
-                let data = new FormData;
-                data.append("audioRecording", blob);
-                data.append('csrfmiddlewaretoken', csrf_token);
-                fetch("/wordgame/audio/", {method:"POST",
-                headers: { "X-CSRFToken": csrf_token },
-                body:data,
-                credentials:'same-origin', })
-            }
-
-        }
-    }
-     });
     </script>
 <script type="text/javascript">
 function createRGBFromScore(score) {
@@ -218,7 +177,7 @@ function showCreation() {
 <div class="container" id="audio">
 </div>
 <div class="container" id="feedback">
-    <form action="{% url 'vote' %}" method="POST">
+
         <input type="hidden" name="sv" id="score_vector" value="{{scorevector}}">
         {% csrf_token %}
         <div>
@@ -232,26 +191,28 @@ function showCreation() {
               </label>
               <br>
         </div>
+
     <div class="row">
         <div class="col-sm">
             <h5 class="text-primary">Play Again?</h5>
             Get another story based on your preferences.<br>
                 <button type="submit" id="normal" name="normal" class="btn btn-primary">I'm Feeling Lucky!</button>
+
         </div>
         <div class="col-sm">
             <h5 class="text-primary">Try Something A Litte Different?</h5>
             Pick a game based on one of the following.
-                <button type="submit" id="current" name="current" class="btn btn-primary">Current Headline</button>
+                <a href="{% url 'current' %}" id="current" name="current" class="btn btn-primary">Current Headline</a>
                 <button type="submit" id="local" name="local" class="btn btn-primary">Local Headline</button>
         </div>
         <div class="col-sm">
             <h5 class="text-primary">Or Tell Me A Topic You Like</h5>
             Click the microphone and then say a topic you like. Click the stop button when you're done.<br>
-            <button id="startRecord" name="startRecord" class="btn btn-outline-primary"><img src='{% static "wordgame/images/mic.svg" %}'></button>
-            <button id="stopRecord" name="stopRecord" class="btn btn-outline-primary"><img src='{% static "wordgame/images/stop-circle.svg" %}'></button>           
+            <button onclick="startRecording(this);" id="startRecord" name="startRecord" class="btn btn-outline-primary"><img src='{% static "wordgame/images/mic.svg" %}'></button>
+            <button onclick="stopRecording(this);" id="stopRecord" name="stopRecord" class="btn btn-outline-primary"><img src='{% static "wordgame/images/stop-circle.svg" %}'></button>           
         </div>
       </div>
-      </form>
+      
 </div>
 <!-- end div tag for showCreation-->
 </div>
@@ -261,5 +222,52 @@ function showCreation() {
     *WARNING: Pregnant women, the elderly, and children under 10 should avoid prolonged exposure to Generic Word Game. Generic Word Game contains an unstable articifical intelligence core, which, if exposed due to rupture, should not be touched, inhaled, or looked at. Discontinue use of Generic Word Game if any of the following occurs: itching, vertigo, dizziness, tingling in extremities, loss of balance, slurred speech, temporary blindness, profuse sweating, or heart palpitations. If Generic Word Game begins to smoke, get away immediately. Seek shelter and cover head. When not in use the artificial intelligence core should be kept in it's special container and kept under refrigeration. Some ingredients are unknown. Do not taunt Generic Word Game. Generic Word Game comes with a lifetime warranty.
 </p>
 </div>
+<script>
+          var rec;
+      var gumStream;
+
+      function startRecording(button) {
+      var constraints = {audio:true,video:false}
+      navigator.mediaDevices.getUserMedia(constraints).then(function(stream) {
+      console.log("got promise, initializing and recording...");
+      audioContext = new AudioContext();
+      gumStream = stream;
+      input = audioContext.createMediaStreamSource(stream);
+      rec = new Recorder(input, {numChannels:1})
+      rec.record()
+      console.log("recording has started...")
+      });
+  }
+
+  function stopRecording(button) {
+      console.log("stop button clicked");
+      rec.stop();
+      gumStream.getAudioTracks()[0].stop();
+      rec.exportWAV(postToServer);
+  }
+
+    function postToServer(blob) {
+        console.log(blob.size);
+      console.log(blob.type);
+
+      let data = new FormData;
+    data.append("audioRecording", blob);
+
+         fetch("/wordgame/audio/", {method:"POST",
+         body:data,
+        credentials:'same-origin', }).then(response =>
+        {
+            if(response.status == "200") {
+                console.log("200");
+                location.href = '/wordgame/custom';
+            }
+            else {
+                console.log("error");
+            }
+        }
+        )
+
+        }
+</script>
 </body>
 </html>

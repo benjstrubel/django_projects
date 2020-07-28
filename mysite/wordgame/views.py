@@ -1,7 +1,9 @@
 import operator
 import os
-from django.http import HttpResponseRedirect
-from django.shortcuts import render, get_object_or_404
+from django.http import HttpResponseRedirect, HttpResponse
+from django.shortcuts import render, get_object_or_404, redirect
+from django.template.response import TemplateResponse
+from django.urls import reverse
 from django.views.decorators.csrf import csrf_exempt
 import random
 import json
@@ -13,21 +15,36 @@ from .view_helpers import create_context_for_main_template, get_or_create_prefve
 
 @csrf_exempt
 def audio(request):
-    #print(request.body)
-    #blob = request.body
-    #blob = request.POST['audioRecording']
-    #print(blob)
-    blob = request.FILES['audioRecording']
+    print("audio recording post")
+    files= request.FILES
+    print(files)
+    blob = files['audioRecording']
+    #blob = request.FILES['audioRecording']
+    #print(request.FILES)
     print("sound blob len", len(blob))
     file = blob.read()
 
-    s = LanguageServices()
-    searchterm = s.speech_to_text(file)
+    #s = LanguageServices()
+    #searchterm = s.speech_to_text(file)
+    #searchterm = searchterm.replace(".","")
+    #searchterm = searchterm.replace(" ", "%20")
+    #print("search term will be:",searchterm)
+    searchterm = "Philadelphia%20Eagles"
+    c = CurrentHeadlineServices()
+    text = c.get_search_headline(searchterm)
+    print("blurb will be:",text)
+    request.session['custom'] = "True"
+    request.session['text'] = text
+    print("success, redirecting...")
+    return HttpResponse("success")
 
-    context = {
-        'audioRecording' : blob
-    }
-    return render(request, 'wordgame/audiotest.html', context)
+
+def custom(request):
+    print("custom request")
+    text = request.session.get('text')
+
+    context = create_context_for_main_template(text)
+    return render(request, 'wordgame/index.html', context)
 
 
 def index(request):
@@ -35,7 +52,6 @@ def index(request):
     if prefvector is None:
         return HttpResponseRedirect('/wordgame/new')
 
-    #convert session pref vector to json and get as actual vector
     prefvector = json.loads(prefvector)
     prefvector = PrefVector.get_as_vector(prefvector)
 

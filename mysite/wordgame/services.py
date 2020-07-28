@@ -50,13 +50,16 @@ class PrefVector:
 class LanguageServices:
 
     def speech_to_text(self, bytes):
+        print("trying speech to text")
         url = "https://eastus.stt.speech.microsoft.com/speech/recognition/conversation/cognitiveservices/v1?language=en-US"
         headers = {
             'Ocp-Apim-Subscription-Key': 'ad6b74669fa84e05a99f4bb2861ddaae',
-            'Content-type': 'audio/wav codecs=audio/pcm; samplerate=16000'
+            'Content-type': 'audio/ogg codecs=opus; samplerate=16000'
         }
         resp = requests.post(url, headers=headers, data=bytes)
+        print("got resp from azure:",resp)
         guess = json.loads(resp.content.decode())
+        print("guess is:",guess["DisplayText"])
         return guess["DisplayText"]
 
 
