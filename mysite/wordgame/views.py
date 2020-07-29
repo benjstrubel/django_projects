@@ -1,5 +1,5 @@
 import operator
-from django.http import HttpResponseRedirect, HttpResponse
+from django.http import HttpResponseRedirect, HttpResponse, HttpResponseBadRequest
 from django.shortcuts import render
 from django.views.decorators.csrf import csrf_exempt
 import json
@@ -9,28 +9,29 @@ from .view_helpers import create_context_for_main_template, get_or_create_prefve
 
 @csrf_exempt
 def audio(request):
-    print("audio recording post")
-    files= request.FILES
-    print(files)
-    blob = files['audioRecording']
-    #blob = request.FILES['audioRecording']
-    #print(request.FILES)
-    print("sound blob len", len(blob))
-    file = blob.read()
+    try:
+        print("audio recording post")
+        files= request.FILES
+        blob = files['audioRecording']
+        print("sound blob len", len(blob))
+        file = blob.read()
 
-    #s = LanguageServices()
-    #searchterm = s.speech_to_text(file)
-    #searchterm = searchterm.replace(".","")
-    #searchterm = searchterm.replace(" ", "%20")
-    #print("search term will be:",searchterm)
-    searchterm = "Philadelphia%20Eagles"
-    c = CurrentHeadlineServices()
-    text = c.get_search_headline(searchterm)
-    print("blurb will be:",text)
-    request.session['custom'] = "True"
-    request.session['text'] = text
-    print("success, redirecting...")
-    return HttpResponse("success")
+        #s = LanguageServices()
+        #searchterm = s.speech_to_text(file)
+        #searchterm = searchterm.replace(".","")
+        #searchterm = searchterm.replace(" ", "%20")
+        #print("search term will be:",searchterm)
+        searchterm = "Philadelphia%20Eagles"
+        c = CurrentHeadlineServices()
+        text = c.get_search_headline(searchterm)
+        print("blurb will be:",text)
+        request.session['custom'] = "True"
+        request.session['text'] = text
+        print("success, redirecting...")
+        return HttpResponse("success")
+    except Exception as e:
+        print("failure",e)
+        return HttpResponseBadRequest("failure")
 
 
 def custom(request):

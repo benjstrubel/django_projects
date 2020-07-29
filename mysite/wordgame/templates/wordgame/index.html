@@ -107,7 +107,6 @@ function showCreation() {
 </style>
 
 <body onload="setScoreVectorColors()">
-    {{ blurb }}
     <div class="container" id="heading">
     <h1 class="text-primary">Generic Non-Trademarked Word Replacement Game*</h1>
     <h5>Now with machine learning and a British accent!</h5>
@@ -191,6 +190,7 @@ We can get you a stored headline from the database that matches your preferences
             {% csrf_token %}
             <input type="hidden" name="sv" id="score_vector" value="{{scorevector}}">
             <input type="hidden" name="vote" id="vote" value ="-1">
+            <label for="default">Default stored headline</label>
                 <button type="submit" id="default" name="default" class="btn btn-primary">Stored Headline</button>
                 <button type="submit" id="current" name="current" class="btn btn-primary">Current Headline</button>
                 <button type="submit" id="local" name="local" class="btn btn-primary">Local Headline</button>
@@ -216,7 +216,7 @@ We can get you a stored headline from the database that matches your preferences
 </p>
 </div>
 <script>
-          var rec;
+      var rec;
       var gumStream;
 
       function startRecording(button) {
