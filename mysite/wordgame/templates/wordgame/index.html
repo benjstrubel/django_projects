@@ -28,19 +28,14 @@
         }
         return cookieValue;
     }
-
-    function postForm() {
-        let fd = new FormData;
-        //score vector
-        fd.append("score_vector",score_vector.value);
-        //vote
-
-        //submission type
-
-
-    }
     </script>
 <script type="text/javascript">
+function voteclick(button) {
+    var formval = document.getElementById("vote");
+    console.log(button.value);
+    formval.value = button.value;
+}
+
 function createRGBFromScore(score) {
     var inv = 1 - score;
     var c= Math.ceil(inv * 255).toString();
@@ -82,8 +77,8 @@ function showCreation() {
     e = document.getElementById("showCreationToggle");
     e.setAttribute("style","display:block");
 
-    //e = document.getElementById("userInputToggle");
-    //e.setAttribute("style", "display:None");
+    e = document.getElementById("userInputToggle");
+    e.setAttribute("style", "display:None");
 }
 </script>
 <style>
@@ -167,45 +162,43 @@ function showCreation() {
 </div>
 
 <!-- begin finished creation content-->
-<div id="showCreationToggle" style="display: Block">
+<div id="showCreationToggle" style="display: None">
 <div class="container " id="creation">
     <h3 class="text-primary">Here's What You Created...</h3>
     <div id="creationText"></div>
-    <br>
-    <br>
 </div>
 <div class="container" id="audio">
 </div>
 <div class="container" id="feedback">
-
-        <input type="hidden" name="sv" id="score_vector" value="{{scorevector}}">
-        {% csrf_token %}
         <div>
             <label>
-                <input type="radio" name="test" value="upvote" checked>
+                <input type="radio" name="test" value="1" onclick="voteclick(this);" unchecked>
                 <img src='{% static "wordgame/images/thumbs-up.svg" %}'>
               </label>
               <label>
-                <input type="radio" name="test" value="downvote" checked>
+                <input type="radio" name="test" value="0" onclick="voteclick(this);" unchecked>
                 <img src='{% static "wordgame/images/thumbs-down.svg" %}'>
               </label>
+              <br>
               <br>
         </div>
 
     <div class="row">
-        <div class="col-sm">
-            <h5 class="text-primary">Play Again?</h5>
-            Get another story based on your preferences.<br>
-                <button type="submit" id="normal" name="normal" class="btn btn-primary">I'm Feeling Lucky!</button>
+        <div class="col-sm-8">
+<h5 class="text-primary">Ready To Play Again? Here Are Your Options...</h5>
+We can get you a stored headline from the database that matches your preferences, a current headline, or a random local headline.
+        <form action="{% url 'vote' %}" method='POST'>
+            {% csrf_token %}
+            <input type="hidden" name="sv" id="score_vector" value="{{scorevector}}">
+            <input type="hidden" name="vote" id="vote" value ="-1">
+                <button type="submit" id="default" name="default" class="btn btn-primary">Stored Headline</button>
+                <button type="submit" id="current" name="current" class="btn btn-primary">Current Headline</button>
+                <button type="submit" id="local" name="local" class="btn btn-primary">Local Headline</button>
+        
+            </form>
 
         </div>
-        <div class="col-sm">
-            <h5 class="text-primary">Try Something A Litte Different?</h5>
-            Pick a game based on one of the following.
-                <a href="{% url 'current' %}" id="current" name="current" class="btn btn-primary">Current Headline</a>
-                <button type="submit" id="local" name="local" class="btn btn-primary">Local Headline</button>
-        </div>
-        <div class="col-sm">
+        <div class="col-sm-4">
             <h5 class="text-primary">Or Tell Me A Topic You Like</h5>
             Click the microphone and then say a topic you like. Click the stop button when you're done.<br>
             <button onclick="startRecording(this);" id="startRecord" name="startRecord" class="btn btn-outline-primary"><img src='{% static "wordgame/images/mic.svg" %}'></button>

@@ -1,15 +1,9 @@
 import operator
-import os
 from django.http import HttpResponseRedirect, HttpResponse
-from django.shortcuts import render, get_object_or_404, redirect
-from django.template.response import TemplateResponse
-from django.urls import reverse
+from django.shortcuts import render
 from django.views.decorators.csrf import csrf_exempt
-import random
 import json
 from .services import NLPServices, PrefVector, CurrentHeadlineServices, BlurbServices, LanguageServices
-from .models import Blurb
-from .models import ScoreVector
 from .view_helpers import create_context_for_main_template, get_or_create_prefvector, get_client_ip
 
 
@@ -63,14 +57,6 @@ def index(request):
     context = create_context_for_main_template(blurb.text,sv)
     return render(request, 'wordgame/index.html', context)
 
-def submit(request):
-
-    #process vote
-
-    #
-    pass
-
-
 
 def current_headline(request):
     prefvector = get_or_create_prefvector(request)
@@ -89,8 +75,13 @@ def local_headline(request):
     c = CurrentHeadlineServices()
     text = c.get_local_headline(ip)
 
-    context = create_context_for_main_template(text)
-    return render(request, 'wordgame/index.html', context)
+    if text != "-1":
+        print("got local headline, rendering...")
+        context = create_context_for_main_template(text)
+        return render(request, 'wordgame/index.html', context)
+    else:
+        print("could not get local headline, sending to default...")
+        return HttpResponseRedirect('/wordgame/')
 
 def newsession(request):
     context = {}
@@ -117,22 +108,23 @@ def vote(request):
     maxcategory = max(sv.items(), key=operator.itemgetter(1))[0]
     print("max category is: " , maxcategory)
 
-    #get their up/down vote
-    if request.POST.get('upvote'):
-        vote = "1"
-    elif request.POST.get('downvote'):
-        vote = "0"
+    vote = request.POST['vote']
+    print("user voted:",vote)
+    if vote != "-1":
+        # update pref vector
+        prefvector = PrefVector.record_vote(prefvector, maxcategory, vote)
+        print("new pref vector is: ", prefvector)
     else:
-        print("bad vote, using 1")
-        vote = "1"
-
-    print("user voted it: ", vote)
-
-    #update pref vector
-    prefvector = PrefVector.record_vote(prefvector, maxcategory, vote)
-    print("new pref vector is: ", prefvector)
+        print("no valid vote, got:",vote)
 
     #store new vect in session
     request.session['prefvector'] = json.dumps(prefvector)
 
-    return HttpResponseRedirect('/wordgame/')
+    if "current" in request.POST:
+        print("sending to current headline")
+        return HttpResponseRedirect('/wordgame/current/')
+    elif "local" in request.POST:
+        print("sending to local headline")
+        return HttpResponseRedirect('/wordgame/local/')
+    else:
+        return HttpResponseRedirect('/wordgame/')

@@ -54,7 +54,7 @@ class LanguageServices:
         url = "https://eastus.stt.speech.microsoft.com/speech/recognition/conversation/cognitiveservices/v1?language=en-US"
         headers = {
             'Ocp-Apim-Subscription-Key': 'ad6b74669fa84e05a99f4bb2861ddaae',
-            'Content-type': 'audio/ogg codecs=opus; samplerate=16000'
+            'Content-type': 'audio/wav'
         }
         resp = requests.post(url, headers=headers, data=bytes)
         print("got resp from azure:",resp)
@@ -66,11 +66,16 @@ class LanguageServices:
 class CurrentHeadlineServices:
 
     def get_local_headline(self, ip):
-        url = "http://ip-api.com/json/" + ip
-        resp = requests.get(url)
-        jsontext = json.loads(resp.content.decode())
-        searchterm = jsontext['regionName'] + "," + jsontext['country']
-        text = self.get_search_headline(searchterm)
+        try:
+            url = "http://ip-api.com/json/" + ip
+            resp = requests.get(url)
+            jsontext = json.loads(resp.content.decode())
+            searchterm = jsontext['regionName'] + "," + jsontext['country']
+            text = self.get_search_headline(searchterm)
+        except Exception as e:
+            print("error getting local headline")
+            print(e)
+            text = "-1"
         return text
 
 
