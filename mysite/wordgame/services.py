@@ -180,7 +180,7 @@ class NLPServices:
         sock.connect(server_address)
         mymsg = Message.create_msg(text.encode())
         sock.sendall(mymsg)
-        #until it can be fixed this infuriating line is needed in order to raise the underlying buffer available to be read flag on the server
+        #until it can be fixed this infuriating line is needed in order to raise the underlying "buffer available to be read" flag on the server
         sock.shutdown(socket.SHUT_WR)
         print("send finished")
 
