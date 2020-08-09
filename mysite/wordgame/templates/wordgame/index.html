@@ -58,7 +58,15 @@ function setScoreVectorColors() {
     setAScoreVectorColor("tv");
 }
 
-function showCreation() {
+function buildSentence() {
+    var uposToEnglish = {
+        "NOUN" : "Noun",
+        "ADV" : "Adverb",
+        "ADJ" : "Adjective",
+        "PROPN" : "Proper Noun",
+        "VERB" : "Verb",
+        "NUM" : "Number"
+    }
     var sent = "";
     const textlist = JSON.parse(document.getElementById("blurbtext").textContent);
     for(var i = 0; i < textlist.length; ++ i) {
@@ -71,6 +79,46 @@ function showCreation() {
         sent += " ";
     }
     console.log(sent);
+    return sent;
+}
+
+function showAudioCreation() {
+    var sent = buildSentence();
+
+      let data = new FormData;
+    data.append("text", sent);
+
+         fetch("/wordgame/tts/", {method:"POST",
+         body:data,
+        credentials:'same-origin', }).then(response =>
+        {
+            if(response.status == "200") {
+                console.log("200 tts success");
+                response.blob().then(blob => displayAudio(blob));
+
+            }
+            else {
+                console.log("error, non 200 response");
+            }
+        }
+        )
+
+}
+
+function displayAudio(blob) {
+    console.log(blob);
+    var url = URL.createObjectURL(blob);
+    var audioDiv = document.getElementById("creationAudio");
+
+    audioDiv.innerHTML = "<audio controls src=" + url + " autoplay></audio>"
+
+    showCreation();
+
+}
+
+function showCreation() {
+    var sent = buildSentence();
+
     e = document.getElementById("creationText");
     e.innerHTML = "<h5>" + sent + "</h5>";
 
@@ -82,7 +130,7 @@ function showCreation() {
 }
 </script>
 <style>
-    /* HIDE RADIO */
+    /* hide style */
 [type=radio] { 
   position: absolute;
   opacity: 0;
@@ -90,7 +138,7 @@ function showCreation() {
   height: 0;
 }
 
-/* IMAGE STYLES */
+/* image styles */
 [type=radio] + img {
   cursor: pointer;
   border: 1px solid transparent;
@@ -100,7 +148,7 @@ function showCreation() {
   border-radius: 0.25rem;
 }
 
-/* CHECKED STYLES */
+/* checked styles */
 [type=radio]:checked + img {
   background-color: #0074d9;
   }
@@ -117,6 +165,7 @@ function showCreation() {
         <thead>
         <tbody>
             <tr>
+                <td class="bg-primary text-white">Your Topic Category(s):</td>
                 <td id="ev" data-score="{{ scorevector.entertainment}}">Entertainment</td>
                 <td id="hv" data-score="{{ scorevector.health}}">Health</td>
                 <td id="pv" data-score="{{ scorevector.politics}}">Politics</td>
@@ -154,7 +203,7 @@ function showCreation() {
     </table>
     <h5>Ready for the big reveal?</h5>
     <button id=seeIt class="btn btn-secondary" onClick="showCreation()">Let Me See It.</button>
-    <button id="sayIt" class="btn btn-secondary">Read It To Me!</button>
+    <button id="sayIt" class="btn btn-secondary" onClick="showAudioCreation()">Read It To Me!</button>
     <br><br>   
 </div>
 <!-- ending div for userinput toggle-->
@@ -164,6 +213,7 @@ function showCreation() {
 <div id="showCreationToggle" style="display: None">
 <div class="container " id="creation">
     <h3 class="text-primary">Here's What You Created...</h3>
+    <div id="creationAudio"></div>
     <div id="creationText"></div>
 </div>
 <div class="container" id="audio">
@@ -190,7 +240,6 @@ We can get you a stored headline from the database that matches your preferences
             {% csrf_token %}
             <input type="hidden" name="sv" id="score_vector" value="{{scorevector}}">
             <input type="hidden" name="vote" id="vote" value ="-1">
-            <label for="default">Default stored headline</label>
                 <button type="submit" id="default" name="default" class="btn btn-primary">Stored Headline</button>
                 <button type="submit" id="current" name="current" class="btn btn-primary">Current Headline</button>
                 <button type="submit" id="local" name="local" class="btn btn-primary">Local Headline</button>
@@ -223,11 +272,14 @@ We can get you a stored headline from the database that matches your preferences
       var constraints = {audio:true,video:false}
       navigator.mediaDevices.getUserMedia(constraints).then(function(stream) {
       console.log("got promise, initializing and recording...");
+      //tell user how recording works and change ui
+      alert("Start speaking when you see the the microphone icon turn green.");
       audioContext = new AudioContext();
       gumStream = stream;
       input = audioContext.createMediaStreamSource(stream);
       rec = new Recorder(input, {numChannels:1})
       rec.record()
+      document.getElementById("startRecord").className = "btn btn-success";
       console.log("recording has started...")
       });
   }
@@ -235,6 +287,8 @@ We can get you a stored headline from the database that matches your preferences
   function stopRecording(button) {
       console.log("stop button clicked");
       rec.stop();
+      document.getElementById("startRecord").className = "btn btn-outline-primary";
+      document.getElementById("stopRecord").className = "btn btn-danger";
       gumStream.getAudioTracks()[0].stop();
       rec.exportWAV(postToServer);
   }
@@ -255,7 +309,9 @@ We can get you a stored headline from the database that matches your preferences
                 location.href = '/wordgame/custom';
             }
             else {
-                console.log("error");
+                console.log("error, non 200 response");
+                alert("We're sorry we couldn't process your request. We'll send you to a new game.")
+                location.href = '/wordgame/';
             }
         }
         )

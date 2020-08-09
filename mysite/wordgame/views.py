@@ -16,12 +16,13 @@ def audio(request):
         print("sound blob len", len(blob))
         file = blob.read()
 
-        #s = LanguageServices()
-        #searchterm = s.speech_to_text(file)
-        #searchterm = searchterm.replace(".","")
-        #searchterm = searchterm.replace(" ", "%20")
-        #print("search term will be:",searchterm)
-        searchterm = "Philadelphia%20Eagles"
+        s = LanguageServices()
+        searchterm = s.speech_to_text(file)
+        searchterm = searchterm.replace(".","")
+        searchterm = searchterm.replace(",","")
+        searchterm = searchterm.replace(" ", "%20")
+        print("search term will be:",searchterm)
+
         c = CurrentHeadlineServices()
         text = c.get_search_headline(searchterm)
         print("blurb will be:",text)
@@ -33,6 +34,19 @@ def audio(request):
         print("failure",e)
         return HttpResponseBadRequest("failure")
 
+@csrf_exempt
+def tts(request):
+    sessionid = request.session.session_key
+    print("sessionid filename will be: ", sessionid)
+    text = request.POST['text']
+    print("text is: ", text)
+    l = LanguageServices()
+    bytes = l.text_to_speech(text, sessionid)
+    if bytes is not None:
+        response = HttpResponse(bytes, content_type='audio/mp3')
+        response['Content-Disposition'] = 'attachment; filename="audiofilename"'
+        return response
+    return HttpResponseBadRequest("failure")
 
 def custom(request):
     print("custom request")

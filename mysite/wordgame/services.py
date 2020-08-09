@@ -1,4 +1,6 @@
+import os
 import random
+import time
 import feedparser
 import requests
 from scipy.spatial.distance import cosine
@@ -6,6 +8,7 @@ import socket
 import struct
 import json
 import datetime
+import pyttsx3
 from .models import Blurb
 
 class PrefVector:
@@ -48,6 +51,33 @@ class PrefVector:
         return v
 
 class LanguageServices:
+
+    def text_to_speech(self, text, sessionid):
+        fullfilepath = "c:/development/" + sessionid + '.mp3'
+        engine = pyttsx3.init()
+        engine.setProperty('rate', 170)
+        #library only saves to disk, extra I/O for no reason :(
+        engine.save_to_file(text, fullfilepath)
+        print("saving to file running and waiting...")
+        engine.runAndWait()
+
+        #wait for file to be created, not sure why django runs runAndWait async
+        wait_time = 7
+        counter = 0
+        while not os.path.exists(fullfilepath):
+            time.sleep(1)
+            counter += 1
+            if counter > wait_time:
+                break
+        try:
+            with open(fullfilepath, "rb") as f:
+                bytes = f.read()
+            print("file found")
+        except Exception as e:
+            print("file not found")
+            print(e)
+            bytes = None
+        return bytes
 
     def speech_to_text(self, bytes):
         print("trying speech to text")
@@ -92,7 +122,7 @@ class CurrentHeadlineServices:
             "health" : "http://rss.cnn.com/rss/cnn_health.rss",
             "politics" : "http://rss.cnn.com/rss/cnn_allpolitics.rss",
             "sports" : "https://www.cbssports.com/rss/headlines/",
-            "technology" : "http://rss.cnn.com/rss/cnn_tech.rss"
+            "tech" : "http://rss.cnn.com/rss/cnn_tech.rss"
         }
         feed = feedparser.parse(urls[category])
         entry = feed.entries[random.randrange(0,len(feed.entries))]
@@ -112,6 +142,7 @@ class BlurbServices:
         return maxcat
 
     def get_blurb(self, prefvector):
+        MAX_BLURBS = 4 #max results to choose random blurb from
         print("finding blurb for this prefector:",prefvector)
         #store pk_id:cosine_sim_score
         sim_scores = {}
@@ -127,9 +158,12 @@ class BlurbServices:
         #order by cosine sim scores and get random high score
         sorted_sim_scores = sorted(sim_scores.items(),key=lambda x: x[1],reverse=True)
         #
-        #max = 100 if len(sorted_sim_scores) > 100 else len(sorted_sim_scores)
-        #idx = random.randrange(0,max)
-        pk = next(iter(sorted_sim_scores))[0]
+        max = MAX_BLURBS if len(sorted_sim_scores) > MAX_BLURBS else len(sorted_sim_scores)
+        print("max blurbs is: ", max)
+        idx = random.randrange(0,max)
+        print("random index is: ", idx)
+        #pk = next(iter(sorted_sim_scores))[0]
+        pk = sorted_sim_scores[idx][0]
 
         blurb = Blurb.objects.get(pk=pk)
         return blurb
@@ -203,6 +237,14 @@ class NLPServices:
     def replace_pos(self,json_text):
         MAXLOOPTIME = 2
         VALID_TAGS = ['NOUN', 'VERB', 'PROPN', 'ADV', 'ADJ', 'NUM']
+        UPOS_TO_ENGLISH = {
+            "NOUN": "Noun",
+            "ADV": "Adverb",
+            "ADJ": "Adjective",
+            "PROPN": "Proper Noun",
+            "VERB": "Verb",
+            "NUM": "Number"
+        }
         max = len(json_text['words'])-1
 
         notdone = True
@@ -212,6 +254,7 @@ class NLPServices:
             idx = random.randrange(0,max)
             if(json_text['pos'][idx] in VALID_TAGS and json_text['words'][idx] != "%%%"):
                 json_text['words'][idx] = "%%%"
+                json_text['pos'][idx] = UPOS_TO_ENGLISH[json_text['pos'][idx]] #make spacy upos readable by users
                 notdone = False
             if datetime.datetime.now().timestamp()-time > MAXLOOPTIME:
                 notdone = False
