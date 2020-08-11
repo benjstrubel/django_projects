@@ -70,13 +70,17 @@ function buildSentence() {
     var sent = "";
     const textlist = JSON.parse(document.getElementById("blurbtext").textContent);
     for(var i = 0; i < textlist.length; ++ i) {
+        //strip trailing space if needed
+        if (textlist[i].includes("'")) {
+            sent = sent.substring(0, sent.length-1);
+        }
         if (textlist[i] == "%%%") {
             sent += document.getElementById("input" + i.toString()).value.toString();
         }
         else {
             sent += textlist[i];
         }
-        sent += " ";
+        sent += " ";   
     }
     console.log(sent);
     return sent;
@@ -128,6 +132,19 @@ function showCreation() {
     e = document.getElementById("userInputToggle");
     e.setAttribute("style", "display:None");
 }
+
+function showHelp() {
+    e = document.getElementById("helpContainer");
+    if(e.style.display != "None") {
+        closeHelp();
+    }
+    e.setAttribute("style", "display:Block");
+}
+
+function closeHelp() {
+    e = document.getElementById("helpContainer");
+    e.setAttribute("style", "display:None");  
+}
 </script>
 <style>
     /* hide style */
@@ -155,12 +172,53 @@ function showCreation() {
 </style>
 
 <body onload="setScoreVectorColors()">
-    <div class="container" id="heading">
+    <div class="container" id="mainContainer">
+    <div id="heading" class="row">
+        <div class="col-11">
     <h1 class="text-primary">Generic Non-Trademarked Word Replacement Game*</h1>
     <h5>Now with machine learning and a British accent!</h5>
     <br>
     </div>
-    <div class="container" id="scorebar">
+    <div id="helpButton" class="col-1">
+        <p class="text-right">
+        <button onClick="showHelp();" class="btn btn-outline-primary"><img src='{% static "wordgame/images/help-circle.svg" %}' alt="help button"></button>
+        </p>
+    </div>
+    </div>
+
+    <div id="helpContainer" style="display: None">
+        <div class="row">
+            <div class="col-11">
+      <h5 class="text-primary">How To Use This Crazy Contraption</h5>
+</div>
+<div class="col-1">
+        <p class="text-right">
+            <button onClick="closeHelp();" class="btn btn-primary text-white" aria="close help screen">X</button>
+        </p>
+    </div>
+    </div>
+    <div class="row">
+        <div class="col">
+    <p>
+        The category bar at the top shows you what your mystery sentences will be about. The darker the topic label the more the sentence is about that topic.
+    </p><p>
+        Think up a funny word for the parts of speech and fill them in.
+    </p>
+    <p>
+        Click the "Show It" button too see what you created.<br>
+        Click "Say It" to have the creation read to you in a bad robotic voice. Please be aware that the hamsters powering our servers are elderly so it may take some time for the audio file to be created.
+    </p>
+    <p>
+        The game tries to learn what topics you like so click the thumbs up or thumbs down icon so we can learn what you like.
+    </p>
+    <p>
+        When you are ready to play again you can click the "Stored Headline" button to get another game from our database. If you want a current news headline click the "Current Headline" button. If you want try a headline based on your location click the "Local Headline" button.
+    </p>
+        <br></div>
+    </div>
+    </div>
+
+    <div class="row" id="scorebar">
     <table class="table table-bordered">
         <thead>
         <tbody>
@@ -177,7 +235,7 @@ function showCreation() {
 <br>
 </div>
 <div id="userInputToggle">
-<div class="container" id="userinput">
+<div class="row" id="userinput">
     <h5>Fill in your words for the parts of speech below</h5>
     <table class="table table-borderless">
         <thead>
@@ -201,24 +259,32 @@ function showCreation() {
             {% endfor %}
     </tbody>
     </table>
+</div>
+<div class="row">
     <h5>Ready for the big reveal?</h5>
-    <button id=seeIt class="btn btn-secondary" onClick="showCreation()">Let Me See It.</button>
-    <button id="sayIt" class="btn btn-secondary" onClick="showAudioCreation()">Read It To Me!</button>
-    <br><br>   
+</div>
+<div class="row">
+    <br>
+    <button id="seeIt" class="btn btn-primary" onClick="showCreation();">Show It</button>&nbsp;
+    <button id="sayIt" class="btn btn-primary" onClick="showAudioCreation();">Say It</button>
+    <br><br>  
 </div>
 <!-- ending div for userinput toggle-->
 </div>
 
 <!-- begin finished creation content-->
 <div id="showCreationToggle" style="display: None">
-<div class="container " id="creation">
+<div class="row " id="creation">
+    <br>
     <h3 class="text-primary">Here's What You Created...</h3>
     <div id="creationAudio"></div>
     <div id="creationText"></div>
+    <br>
 </div>
-<div class="container" id="audio">
+<div class="row" id="audio">
 </div>
-<div class="container" id="feedback">
+<div class="row" id="feedback">
+    <h5 class="text-primary">What Did You Think of The Topic?&nbsp;</h5>
         <div>
             <label>
                 <input type="radio" name="test" value="1" onclick="voteclick(this);" unchecked>
@@ -235,7 +301,7 @@ function showCreation() {
     <div class="row">
         <div class="col-sm-8">
 <h5 class="text-primary">Ready To Play Again? Here Are Your Options...</h5>
-We can get you a stored headline from the database that matches your preferences, a current headline, or a random local headline.
+We can get you a stored headline from the database that matches your preferences, a current headline (that hopefully matches your preferences), or a random local headline (it could be any topic).
         <form action="{% url 'vote' %}" method='POST'>
             {% csrf_token %}
             <input type="hidden" name="sv" id="score_vector" value="{{scorevector}}">
@@ -258,11 +324,13 @@ We can get you a stored headline from the database that matches your preferences
 </div>
 <!-- end div tag for showCreation-->
 </div>
-<div class="container" id="bottom">
+<div class="row" id="bottom">
     <br>
     <p class="text text-secondary">
     *WARNING: Pregnant women, the elderly, and children under 10 should avoid prolonged exposure to Generic Word Game. Generic Word Game contains an unstable articifical intelligence core, which, if exposed due to rupture, should not be touched, inhaled, or looked at. Discontinue use of Generic Word Game if any of the following occurs: itching, vertigo, dizziness, tingling in extremities, loss of balance, slurred speech, temporary blindness, profuse sweating, or heart palpitations. If Generic Word Game begins to smoke, get away immediately. Seek shelter and cover head. When not in use the artificial intelligence core should be kept in it's special container and kept under refrigeration. Some ingredients are unknown. Do not taunt Generic Word Game. Generic Word Game comes with a lifetime warranty.
 </p>
+</div>
+<!-- end main div -->
 </div>
 <script>
       var rec;

@@ -53,9 +53,11 @@ class PrefVector:
 class LanguageServices:
 
     def text_to_speech(self, text, sessionid):
-        fullfilepath = "c:/development/" + sessionid + '.mp3'
+        fullfilepath = "/home/ubuntu/tempaudio/" + sessionid + '.mp3'
         engine = pyttsx3.init()
-        engine.setProperty('rate', 170)
+        engine.setProperty('volume', 1)
+        engine.setProperty('rate', 140)
+        engine.setProperty('voice', 'english-north')
         #library only saves to disk, extra I/O for no reason :(
         engine.save_to_file(text, fullfilepath)
         print("saving to file running and waiting...")
@@ -72,7 +74,9 @@ class LanguageServices:
         try:
             with open(fullfilepath, "rb") as f:
                 bytes = f.read()
-            print("file found")
+            print("file found and read")
+            #remove file
+            os.remove(fullfilepath)
         except Exception as e:
             print("file not found")
             print(e)
@@ -97,13 +101,16 @@ class CurrentHeadlineServices:
 
     def get_local_headline(self, ip):
         try:
+            print("trying geo location for: ", ip)
             url = "http://ip-api.com/json/" + ip
             resp = requests.get(url)
+            print("response from ip-api",resp)
             jsontext = json.loads(resp.content.decode())
             searchterm = jsontext['regionName'] + "," + jsontext['country']
+            searchterm = searchterm.replace(" ","")
             text = self.get_search_headline(searchterm)
         except Exception as e:
-            print("error getting local headline")
+            print("error getting ip location")
             print(e)
             text = "-1"
         return text
