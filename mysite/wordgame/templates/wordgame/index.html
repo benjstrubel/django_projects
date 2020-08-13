@@ -193,7 +193,7 @@ function closeHelp() {
 </div>
 <div class="col-1">
         <p class="text-right">
-            <button onClick="closeHelp();" class="btn btn-primary text-white" aria="close help screen">X</button>
+            <button onClick="closeHelp();" class="btn btn-primary text-white" aria-label="close help screen">X</button>
         </p>
     </div>
     </div>
@@ -265,8 +265,8 @@ function closeHelp() {
 </div>
 <div class="row">
     <br>
-    <button id="seeIt" class="btn btn-primary" onClick="showCreation();">Show It</button>&nbsp;
-    <button id="sayIt" class="btn btn-primary" onClick="showAudioCreation();">Say It</button>
+    <button id="seeIt" class="btn btn-primary" onClick="showCreation();" aria-label="show creation">Show It</button>&nbsp;
+    <button id="sayIt" class="btn btn-primary" onClick="showAudioCreation();" aria-label="show and have computer read creation">Say It</button>
     <br><br>  
 </div>
 <!-- ending div for userinput toggle-->
@@ -287,12 +287,12 @@ function closeHelp() {
     <h5 class="text-primary">What Did You Think of The Topic?&nbsp;</h5>
         <div>
             <label>
-                <input type="radio" name="test" value="1" onclick="voteclick(this);" unchecked>
-                <img src='{% static "wordgame/images/thumbs-up.svg" %}'>
+                <input type="radio" name="test" value="1" onclick="voteclick(this);" aria-label="vote topic as liked" unchecked>
+                <img src='{% static "wordgame/images/thumbs-up.svg" %}' alt="thumbs up image">
               </label>
               <label>
-                <input type="radio" name="test" value="0" onclick="voteclick(this);" unchecked>
-                <img src='{% static "wordgame/images/thumbs-down.svg" %}'>
+                <input type="radio" name="test" value="0" onclick="voteclick(this);" aria-label="vote topic as disliked" unchecked>
+                <img src='{% static "wordgame/images/thumbs-down.svg" %}' alt="thumbs down image">
               </label>
               <br>
               <br>
@@ -306,21 +306,20 @@ We can get you a stored headline from the database that matches your preferences
             {% csrf_token %}
             <input type="hidden" name="sv" id="score_vector" value="{{scorevector}}">
             <input type="hidden" name="vote" id="vote" value ="-1">
-                <button type="submit" id="default" name="default" class="btn btn-primary">Stored Headline</button>
-                <button type="submit" id="current" name="current" class="btn btn-primary">Current Headline</button>
-                <button type="submit" id="local" name="local" class="btn btn-primary">Local Headline</button>
-        
+                <button type="submit" id="default" name="default" class="btn btn-primary" aria-label="get a stored headline">Stored Headline</button>
+                <button type="submit" id="current" name="current" class="btn btn-primary" aria-label="get a current news headline">Current Headline</button>
+                <button type="submit" id="local" name="local" class="btn btn-primary" aria-label="get a local headline">Local Headline</button>
             </form>
-
         </div>
         <div class="col-sm-4">
             <h5 class="text-primary">Or Tell Me A Topic You Like</h5>
             Click the microphone, wait for the message box prompt and then say a topic you like. Click the stop button when you're done.<br>
-            <button onclick="startRecording(this);" id="startRecord" name="startRecord" class="btn btn-outline-primary"><img src='{% static "wordgame/images/mic.svg" %}'></button>
-            <button onclick="stopRecording(this);" id="stopRecord" name="stopRecord" class="btn btn-outline-primary"><img src='{% static "wordgame/images/stop-circle.svg" %}'></button>           
+            <button onclick="startRecording(this);" id="startRecord" name="startRecord" class="btn btn-outline-primary" aria-label="start recording"><img src='{% static "wordgame/images/mic.svg" %}' alt="start recording"></button>
+            <button onclick="stopRecording(this);" id="stopRecord" name="stopRecord" class="btn btn-outline-primary" aria-label="stop recording"><img src='{% static "wordgame/images/stop-circle.svg" %}' alt="stop recording"></button>
+                <div id="recordNotification">
+        </div>
         </div>
       </div>
-      
 </div>
 <!-- end div tag for showCreation-->
 </div>
@@ -353,6 +352,8 @@ We can get you a stored headline from the database that matches your preferences
   }
 
   function stopRecording(button) {
+  e = document.getElementById("recordNotification");
+  e.innerHTML = "<br>Processing request, this may take a bit...";
       console.log("stop button clicked");
       rec.stop();
       document.getElementById("startRecord").className = "btn btn-outline-primary";

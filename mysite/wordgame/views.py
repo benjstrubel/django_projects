@@ -3,10 +3,11 @@ from django.http import HttpResponseRedirect, HttpResponse, HttpResponseBadReque
 from django.shortcuts import render
 from django.views.decorators.csrf import csrf_exempt
 import json
-from .services import NLPServices, PrefVector, CurrentHeadlineServices, BlurbServices, LanguageServices
+from .services import  PrefVector, CurrentHeadlineServices, BlurbServices, LanguageServices
 from .view_helpers import create_context_for_main_template, get_or_create_prefvector, get_client_ip
 
 
+#process speech to text request
 @csrf_exempt
 def audio(request):
     try:
@@ -18,36 +19,45 @@ def audio(request):
 
         s = LanguageServices()
         searchterm = s.speech_to_text(file)
+        #remove invalid characters for Google RSS search
         searchterm = searchterm.replace(".","")
         searchterm = searchterm.replace(",","")
-        searchterm = searchterm.replace(" ", "%20")
+        searchterm = searchterm.replace(" ", "%20") #space to %20
         print("search term will be:",searchterm)
 
+        #create current head line service object to get headline based on voice to text search term
         c = CurrentHeadlineServices()
         text = c.get_search_headline(searchterm)
         print("blurb will be:",text)
-        request.session['custom'] = "True"
-        request.session['text'] = text
+        request.session['custom'] = "True" #set session custom variable to true so we know to render custom text
+        request.session['text'] = text #store text in session variabe
         print("success, redirecting...")
         return HttpResponse("success")
     except Exception as e:
         print("failure",e)
         return HttpResponseBadRequest("failure")
 
+#text to speech
 @csrf_exempt
 def tts(request):
+    #use session id so we have unique filename
     sessionid = request.session.session_key
     print("sessionid filename will be: ", sessionid)
     text = request.POST['text']
     print("text is: ", text)
+
+    #create language services object to do text to speech
     l = LanguageServices()
     bytes = l.text_to_speech(text, sessionid)
+    #if we have a valid file return contents in response
     if bytes is not None:
         response = HttpResponse(bytes, content_type='audio/mp3')
         response['Content-Disposition'] = 'attachment; filename="audiofilename"'
         return response
+    #if process failed, return failure
     return HttpResponseBadRequest("failure")
 
+#function to process custom speech to text headline, text of blurb is stored in session variable
 def custom(request):
     print("custom request")
     text = request.session.get('text')
@@ -55,8 +65,9 @@ def custom(request):
     context = create_context_for_main_template(text)
     return render(request, 'wordgame/index.html', context)
 
-
+#main page view function
 def index(request):
+    #get user pref vector, if not set render new page so user can choose fav topic
     prefvector = request.session.get('prefvector')
     if prefvector is None:
         return HttpResponseRedirect('/wordgame/new')
@@ -72,8 +83,9 @@ def index(request):
     context = create_context_for_main_template(blurb.text,sv)
     return render(request, 'wordgame/index.html', context)
 
-
+#function for current headline
 def current_headline(request):
+    #get pref vector and then max category
     prefvector = get_or_create_prefvector(request)
     maxcategory = max(prefvector.items(), key=operator.itemgetter(1))[0]
 
@@ -84,24 +96,29 @@ def current_headline(request):
     context = create_context_for_main_template(text)
     return render(request, 'wordgame/index.html', context)
 
-
+#function for local headline based on ip
 def local_headline(request):
+    #attempt to get location based on ip and get headline for that state and country
     ip = get_client_ip(request)
     c = CurrentHeadlineServices()
     text = c.get_local_headline(ip)
 
+    #if successful render local headline
     if text != "-1":
         print("got local headline, rendering...")
         context = create_context_for_main_template(text)
         return render(request, 'wordgame/index.html', context)
+    #if error, just get from db
     else:
         print("could not get local headline, sending to default...")
         return HttpResponseRedirect('/wordgame/')
 
+#function for new user/session
 def newsession(request):
     context = {}
     return render(request, 'wordgame/new.html', context)
 
+#handle post request for intial vote from new user/session
 def initialvote(request):
     category = request.POST['category']
     prefvector = get_or_create_prefvector(request)
@@ -111,18 +128,22 @@ def initialvote(request):
         prefvector = PrefVector.record_vote(prefvector,category,"1")
 
     request.session['prefvector'] = json.dumps(prefvector)
-
     return HttpResponseRedirect('/wordgame/')
 
+#handle post request when user is done and request enw game (local, current, custom, or stored)
 def vote(request):
+    #get user pref vector
     prefvector = get_or_create_prefvector(request)
+    #get category vector of blurb they voted on
     sv = request.POST["sv"]
     sv = sv.replace("'",'"')
     sv = json.loads(sv)
 
+    #get max category
     maxcategory = max(sv.items(), key=operator.itemgetter(1))[0]
     print("max category is: " , maxcategory)
 
+    #if they voted, record vote and update pref vector
     vote = request.POST['vote']
     print("user voted:",vote)
     if vote != "-1":
@@ -135,6 +156,7 @@ def vote(request):
     #store new vect in session
     request.session['prefvector'] = json.dumps(prefvector)
 
+    #redirect based on what option button they clicked
     if "current" in request.POST:
         print("sending to current headline")
         return HttpResponseRedirect('/wordgame/current/')

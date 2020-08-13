@@ -11,9 +11,11 @@ import datetime
 import pyttsx3
 from .models import Blurb
 
+#utlity class w/ static functions for manipulating preference vector
 class PrefVector:
-    INCREMENT = .2
+    INCREMENT = .2 #pref increment factor
 
+    #record user vote
     @staticmethod
     def record_vote(prefvector, category, vote):
         #record vote
@@ -25,6 +27,7 @@ class PrefVector:
             prefvector = PrefVector.dislike(prefvector, category)
         return prefvector
 
+    #record a like vote
     @staticmethod
     def like(pv, category):
         pv[category] += PrefVector.INCREMENT
@@ -32,6 +35,7 @@ class PrefVector:
             pv[category] = 1
         return pv
 
+    #record dislike
     @staticmethod
     def dislike(pv, category):
         pv[category] -= PrefVector.INCREMENT
@@ -39,6 +43,7 @@ class PrefVector:
             pv[category] = 0
         return pv
 
+    #convert internal dict to numeric vector
     @staticmethod
     def get_as_vector(prefvector):
         #hardcoding to make sure order is correct
@@ -50,8 +55,9 @@ class PrefVector:
         v.append(prefvector['tech'])
         return v
 
+#class for voice/text manipulation
 class LanguageServices:
-
+    #text to speech function
     def text_to_speech(self, text, sessionid):
         fullfilepath = "/home/ubuntu/tempaudio/" + sessionid + '.mp3'
         engine = pyttsx3.init()
@@ -80,9 +86,10 @@ class LanguageServices:
         except Exception as e:
             print("file not found")
             print(e)
-            bytes = None
+            bytes = None #set as none, handled by views
         return bytes
 
+    #convert speech to text using azure cognition svcs
     def speech_to_text(self, bytes):
         print("trying speech to text")
         url = "https://eastus.stt.speech.microsoft.com/speech/recognition/conversation/cognitiveservices/v1?language=en-US"
@@ -97,8 +104,9 @@ class LanguageServices:
         return guess["DisplayText"]
 
 
+#class for handlign current headlines
 class CurrentHeadlineServices:
-
+    #function to get a local headline based on user ip via ip-api.com
     def get_local_headline(self, ip):
         try:
             print("trying geo location for: ", ip)
@@ -106,6 +114,7 @@ class CurrentHeadlineServices:
             resp = requests.get(url)
             print("response from ip-api",resp)
             jsontext = json.loads(resp.content.decode())
+            #search for just state and country, city headlines are short and not good for mad libs
             searchterm = jsontext['regionName'] + "," + jsontext['country']
             searchterm = searchterm.replace(" ","")
             text = self.get_search_headline(searchterm)
@@ -115,7 +124,8 @@ class CurrentHeadlineServices:
             text = "-1"
         return text
 
-
+    #function for getting a google news rss headlien based on a searhc term
+    #used for custom searches and local headlines
     def get_search_headline(self, searchterm):
         url = "https://news.google.com/rss?q={0}&hl=en".format(searchterm)
         feed = feedparser.parse(url)
@@ -123,7 +133,9 @@ class CurrentHeadlineServices:
         text = entry.title
         return text
 
+    #get a current headline
     def get_current_headline(self, category):
+        #pref category to url dictionary
         urls = {
             "entertainment" : "http://rss.cnn.com/rss/cnn_showbiz.rss",
             "health" : "http://rss.cnn.com/rss/cnn_health.rss",
@@ -136,11 +148,13 @@ class CurrentHeadlineServices:
         text = entry.title + ". " + entry.summary.split("<div")[0] + "."
         return text
 
+#class for dealing with djkango blurb models
 class BlurbServices:
+
+    #get highest category for blurb
     def get_highest_cat(self, blurb):
         sv = blurb.scorevector
-
-        #horrible code :(
+        #horrible code :( needs to be optimized
         vect = [sv.entertainment_score,sv.health_score,sv.politics_score,sv.sports_score,sv.tech_score]
         print("finding max cat for this blurb vector:", vect)
         cats = ["entertainment","health","politics","sports","tech"]
@@ -148,8 +162,9 @@ class BlurbServices:
         print("max cat is:",maxcat)
         return maxcat
 
+    #get a blurb from the db based on user preference
     def get_blurb(self, prefvector):
-        MAX_BLURBS = 4 #max results to choose random blurb from
+        MAX_BLURBS = 6 #max results to choose random blurb from
         print("finding blurb for this prefector:",prefvector)
         #store pk_id:cosine_sim_score
         sim_scores = {}
@@ -175,12 +190,15 @@ class BlurbServices:
         blurb = Blurb.objects.get(pk=pk)
         return blurb
 
+    #process blurb by tagging pos
     def process_blurb(self, blurb):
         #nlp text
         nlp = NLPServices()
         jsontext = nlp.tag_blurb(blurb.text)
         return jsontext
 
+#django to nlp server message class
+#static methods to create and decode messages
 class Message:
     @staticmethod
     def encode_msg_size(int_size):
@@ -195,7 +213,10 @@ class Message:
         size = len(content_bytes)
         return Message.encode_msg_size(size) + content_bytes
 
+#class for communicating with nlp server
 class NLPServices:
+    #function to classify and unknown headline
+    #used for local, current, and custom headlines
     def classify_headline(self, text):
         dict = {
             "cmd" : "classify",
@@ -205,6 +226,7 @@ class NLPServices:
         text_score_vector = self.send_and_recv_msg(msg)
         return json.loads(text_score_vector)
 
+    #tag the POS in a blurb
     def tag_blurb(self, text):
         dict = {
             "cmd" : "postag",
@@ -214,6 +236,7 @@ class NLPServices:
         tagged_blurb = self.send_and_recv_msg(msg)
         return json.loads(tagged_blurb)
 
+    #send message to nlp server and read response
     def send_and_recv_msg(self, text):
         sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         server_address = ('127.0.0.1', 9999)
@@ -235,14 +258,16 @@ class NLPServices:
         print("text is: " + msg)
         return msg
 
+    #main function to prepare a blurb to be rendered by views
     def prep_blurb(self, json_text):
-        WORD_REPLACE_COUNT = 3
+        WORD_REPLACE_COUNT = 3 #replace 3 words
         for x in range(0,WORD_REPLACE_COUNT):
             json_text = self.replace_pos(json_text)
         return json_text
 
+    #replace one valid POS with placehodler symbol for user input
     def replace_pos(self,json_text):
-        MAXLOOPTIME = 2
+        MAXLOOPTIME = 2 #limit loop to 2 seconds to prevent infinite loop
         VALID_TAGS = ['NOUN', 'VERB', 'PROPN', 'ADV', 'ADJ', 'NUM']
         UPOS_TO_ENGLISH = {
             "NOUN": "Noun",
@@ -259,6 +284,7 @@ class NLPServices:
 
         while(notdone):
             idx = random.randrange(0,max)
+            #only replace certain tags
             if(json_text['pos'][idx] in VALID_TAGS and json_text['words'][idx] != "%%%"):
                 json_text['words'][idx] = "%%%"
                 json_text['pos'][idx] = UPOS_TO_ENGLISH[json_text['pos'][idx]] #make spacy upos readable by users

@@ -2,6 +2,7 @@ import json
 from .services import NLPServices
 
 
+#helper function to render context for the main page
 def create_context_for_main_template(text, json_scorevector=None):
     n = NLPServices()
     # tag pos in text
@@ -9,6 +10,7 @@ def create_context_for_main_template(text, json_scorevector=None):
     #remove some pos for mad lib
     jsontext = n.prep_blurb(jsontext)
 
+    #classify headline if not from db
     if json_scorevector is None:
         json_scorevector = n.classify_headline(text)
 
@@ -19,6 +21,8 @@ def create_context_for_main_template(text, json_scorevector=None):
     }
     return context
 
+#get user/session rpef vector or if not available or corrupt create a new one
+#handles edge cases of pref vector being invalid or not set for any reason
 def get_or_create_prefvector(request):
     prefvector = request.session.get('prefvector')
     print("prefvector is: ", prefvector)
@@ -29,6 +33,7 @@ def get_or_create_prefvector(request):
         prefvector = json.loads(prefvector)
     return prefvector
 
+#helper function to get client ip if they want local headline
 def get_client_ip(request):
     x_forwarded_for = request.META.get('HTTP_X_FORWARDED_FOR')
     if x_forwarded_for:
