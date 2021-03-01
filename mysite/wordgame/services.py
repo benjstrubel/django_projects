@@ -94,7 +94,7 @@ class LanguageServices:
         print("trying speech to text")
         url = "https://eastus.stt.speech.microsoft.com/speech/recognition/conversation/cognitiveservices/v1?language=en-US"
         headers = {
-            'Ocp-Apim-Subscription-Key': 'ad6b74669fa84e05a99f4bb2861ddaae',
+            'Ocp-Apim-Subscription-Key': 'redacted',
             'Content-type': 'audio/wav'
         }
         resp = requests.post(url, headers=headers, data=bytes)
