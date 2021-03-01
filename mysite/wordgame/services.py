@@ -148,7 +148,7 @@ class CurrentHeadlineServices:
         text = entry.title + ". " + entry.summary.split("<div")[0] + "."
         return text
 
-#class for dealing with djkango blurb models
+#class for dealing with django blurb models
 class BlurbServices:
 
     #get highest category for blurb

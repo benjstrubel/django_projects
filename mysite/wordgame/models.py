@@ -14,6 +14,7 @@ class ScoreVector(models.Model):
     sports_score = models.FloatField()
     tech_score = models.FloatField()
 
+    #override tostring, now to json format string
     def __str__(self):
         sv_dict = {
             "entertainment": self.entertainment_score,
