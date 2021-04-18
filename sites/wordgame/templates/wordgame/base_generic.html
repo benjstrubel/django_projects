@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<html lang="en">
+ {% load static %}
+<head>
+  <meta charset="utf-8">
+  <title>Generic Non-Trademarked Word Replacement Game</title>
+  <meta name="description" content="html">
+  <meta name="author" content="Ben">
+      <!-- CSS from getbootstrap.com -->
+    <!-- icons from feathericons.com/ -->
+    <link rel='stylesheet' type='text/css' media='screen' href='{% static "wordgame/css/bootstrap.min.css" %}'>
+</head>
+<body>
+<div class="container" id="mainContainer">
+      <div id="heading" class="row">
+        <div class="col-11">
+    <h1 class="text-primary">Generic Non-Trademarked Word Replacement Game*</h1>
+    <h5>Now with machine learning and a British accent!</h5>
+    <br>
+    </div>
+
+          <div id="login" class="col-1">
+{% if user.is_authenticated %}
+              Hello, {{ user.username|default:'Guest' }}!
+              <p><a href="/wordgame/accounts">My Account</a></p>
+              {% else %}
+              <p><a href="/wordgame/accounts/login">Login</a>
+              <br>or<br>
+              <a href="{% url 'register' %}">Register</a></p>
+              {% endif %}
+          </div>
+    </div>
+{% block content %}
+{% endblock %}
+
+<div class="row" id="bottom">
+    <br>
+    <p class="text text-secondary">
+    *WARNING: Pregnant women, the elderly, and children under 10 should avoid prolonged exposure to Generic Word Game. Generic Word Game contains an unstable articifical intelligence core, which, if exposed due to rupture, should not be touched, inhaled, or looked at. Discontinue use of Generic Word Game if any of the following occurs: itching, vertigo, dizziness, tingling in extremities, loss of balance, slurred speech, temporary blindness, profuse sweating, or heart palpitations. If Generic Word Game begins to smoke, get away immediately. Seek shelter and cover head. When not in use the artificial intelligence core should be kept in it's special container and kept under refrigeration. Some ingredients are unknown. Do not taunt Generic Word Game. Generic Word Game comes with a lifetime warranty.
+</p>
+</div>
+<!-- end main div tag -->
+</div>
+</body>
+</html>

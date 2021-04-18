@@ -1,0 +1,401 @@
+<!doctype html>
+<html lang="en">
+    {% load static %}
+<head>
+  <meta charset="utf-8">
+  <title>Generic Non-Trademarked Word Replacement Game</title>
+  <meta name="description" content="html">
+  <meta name="author" content="Ben">
+      <!-- CSS from getbootstrap.com -->
+    <!-- icons from feathericons.com/ -->
+    <link rel='stylesheet' type='text/css' media='screen' href='{% static "wordgame/css/bootstrap.min.css" %}'>
+    <script src='{% static "wordgame/js/recorder.js" %}'></script>
+</head>
+{{ blurb|json_script:"blurbtext"}}
+<!--<script type="text/javascript">
+    function getCookie(name) {
+        let cookieValue = null;
+        if (document.cookie && document.cookie !== '') {
+            const cookies = document.cookie.split(';');
+            for (let i = 0; i < cookies.length; i++) {
+                const cookie = cookies[i].trim();
+                // Does this cookie string begin with the name we want?
+                if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                    cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                    break;
+                }
+            }
+        }
+        return cookieValue;
+    }
+    </script>-->
+<script type="text/javascript">
+function voteclick(button) {
+    var formval = document.getElementById("vote");
+    console.log(button.value);
+    formval.value = button.value;
+}
+
+function createRGBFromScore(score) {
+    var inv = 1 - score;
+    var c= Math.ceil(inv * 255).toString();
+    return "rgb(" + c + "," + c + "," + c + ")";
+}
+
+function setAScoreVectorColor(name) {
+    var td = document.getElementById(name);
+    var score = td.getAttribute("data-score");
+    console.log(score);
+    rgb = createRGBFromScore(score)
+    td.setAttribute("style", "color: " + rgb + ";");
+}
+
+function setScoreVectorColors() {
+    setAScoreVectorColor("ev");
+    setAScoreVectorColor("hv");
+    setAScoreVectorColor("pv");
+    setAScoreVectorColor("sv");
+    setAScoreVectorColor("tv");
+}
+
+function buildSentence() {
+    var uposToEnglish = {
+            'JJ' : 'Adjective',
+            'JJR' : 'Comparative Adjective',
+            'JJS' : 'Superlative Adjective',
+            'NN' : 'Singular Noun',
+            'NNS' : 'Plural Noun',
+            'NNP' : 'Singular Proper Noun',
+            'NNPS' : 'Plural Proper Noun',
+            'RB' : 'Adverb',
+            'RBR' : 'Comparative Adverb',
+            'RBS' : 'Superlative Adverb',
+            'VB' : 'Verb, Base Form',
+            'VBD' : 'Verb, Past Tense',
+            'VBG' : 'Verb, Gerund or Present Participle',
+            'VBN' : 'Verb, Past Participle',
+            'VBP' : 'Verb, Non 3rd Person Singular Present',
+            'VBZ' : 'Verb, 3rd Person Singular Present',
+            'CD' : 'Number'
+    }
+    var sent = "";
+    const textlist = JSON.parse(document.getElementById("blurbtext").textContent);
+    for(var i = 0; i < textlist.length; ++ i) {
+        //strip trailing space if needed
+        if (textlist[i].includes("'")) {
+            sent = sent.substring(0, sent.length-1);
+        }
+        if (textlist[i] == "%%%") {
+            sent += document.getElementById("input" + i.toString()).value.toString();
+        }
+        else {
+            sent += textlist[i];
+        }
+        sent += " ";   
+    }
+    console.log(sent);
+    return sent;
+}
+
+function showAudioCreation() {
+    var sent = buildSentence();
+
+      let data = new FormData;
+    data.append("text", sent);
+
+         fetch("/wordgame/tts/", {method:"POST",
+         body:data,
+        credentials:'same-origin', }).then(response =>
+        {
+            if(response.status == "200") {
+                console.log("200 tts success");
+                response.blob().then(blob => displayAudio(blob));
+
+            }
+            else {
+                console.log("error, non 200 response");
+            }
+        }
+        )
+
+}
+
+function displayAudio(blob) {
+    console.log(blob);
+    var url = URL.createObjectURL(blob);
+    var audioDiv = document.getElementById("creationAudio");
+
+    audioDiv.innerHTML = "<audio controls src=" + url + " autoplay></audio>"
+
+    showCreation();
+
+}
+
+function showCreation() {
+    var sent = buildSentence();
+
+    e = document.getElementById("creationText");
+    e.innerHTML = "<br><h5>" + sent + "</h5>";
+
+    e = document.getElementById("showCreationToggle");
+    e.setAttribute("style","display:block");
+
+    e = document.getElementById("userInputToggle");
+    e.setAttribute("style", "display:None");
+}
+
+function showHelp() {
+    e = document.getElementById("helpContainer");
+    if(e.style.display != "None") {
+        closeHelp();
+    }
+    e.setAttribute("style", "display:Block");
+}
+
+function closeHelp() {
+    e = document.getElementById("helpContainer");
+    e.setAttribute("style", "display:None");  
+}
+</script>
+<style>
+    /* hide style */
+[type=radio] { 
+  position: absolute;
+  opacity: 0;
+  width: 0;
+  height: 0;
+}
+
+/* image styles */
+[type=radio] + img {
+  cursor: pointer;
+  border: 1px solid transparent;
+  padding: 0.375rem 0.75rem;
+  font-size: 1rem;
+  line-height: 1.5;
+  border-radius: 0.25rem;
+}
+
+/* checked styles */
+[type=radio]:checked + img {
+  background-color: #0074d9;
+  }
+</style>
+
+<body onload="setScoreVectorColors()">
+    <div class="container" id="mainContainer">
+    <div id="heading" class="row">
+        <div class="col-11">
+    <h1 class="text-primary">Generic Non-Trademarked Word Replacement Game*</h1>
+    <h5>Now with machine learning and a British accent!</h5>
+    <br>
+    </div>
+    <div id="helpButton" class="col-1">
+        <p class="text-right">
+        <button onClick="showHelp();" class="btn btn-outline-primary"><img src='{% static "wordgame/images/help-circle.svg" %}' alt="help button"></button>
+        </p>
+    </div>
+    </div>
+
+    <div id="helpContainer" style="display: None">
+        <div class="row">
+            <div class="col-11">
+      <h5 class="text-primary">How To Use This Crazy Contraption</h5>
+</div>
+<div class="col-1">
+        <p class="text-right">
+            <button onClick="closeHelp();" class="btn btn-primary text-white" aria-label="close help screen">X</button>
+        </p>
+    </div>
+    </div>
+    <div class="row">
+        <div class="col">
+    <p>
+        The category bar at the top shows you what your mystery sentences will be about. The darker the topic label the more the sentence is about that topic.
+    </p><p>
+        Think up a funny word for the parts of speech and fill them in.
+    </p>
+    <p>
+        Click the "Show It" button too see what you created.<br>
+        Click "Say It" to have the creation read to you in a bad robotic voice. Please be aware that the hamsters powering our servers are elderly so it may take some time for the audio file to be created.
+    </p>
+    <p>
+        The game tries to learn what topics you like so click the thumbs up or thumbs down icon so we can learn what you like.
+    </p>
+    <p>
+        When you are ready to play again you can click the "Stored Headline" button to get another game from our database. If you want a current news headline click the "Current Headline" button. If you want try a headline based on your location click the "Local Headline" button.
+    </p>
+        <br></div>
+    </div>
+    </div>
+
+    <div class="row" id="scorebar">
+    <table class="table table-bordered">
+        <thead>
+        <tbody>
+            <tr>
+                <td class="bg-primary text-white">Your Topic Category(s):</td>
+                <td id="ev" data-score="{{ scorevector.entertainment}}">Entertainment</td>
+                <td id="hv" data-score="{{ scorevector.health}}">Health</td>
+                <td id="pv" data-score="{{ scorevector.politics}}">Politics</td>
+                <td id="sv" data-score="{{ scorevector.sports}}">Sports</td>
+                <td id="tv" data-score="{{ scorevector.tech}}">Technology</td>
+            </tr>
+        </tbody>
+</table>
+<br>
+</div>
+<div id="userInputToggle">
+<div class="row" id="userinput">
+    <h5>Fill in your words for the parts of speech below</h5>
+    <table class="table table-borderless">
+        <thead>
+            <tr>
+                <th>Part of Speech</th>
+                <th>Your Word</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for word,pos in blurbzip %}
+            {% if word == "%%%" %}
+            <tr>
+                <td>
+            {{pos}}
+              </td>
+              <td>
+              <input type="text" id="input{{forloop.counter0 }}">
+              </td>
+              </tr>
+            {% endif %}
+            {% endfor %}
+    </tbody>
+    </table>
+</div>
+<div class="row">
+    <h5>Ready for the big reveal?</h5>
+</div>
+<div class="row">
+    <br>
+    <button id="seeIt" class="btn btn-primary" onClick="showCreation();" aria-label="show creation">Show It</button>&nbsp;
+    <button id="sayIt" class="btn btn-primary" onClick="showAudioCreation();" aria-label="show and have computer read creation">Say It</button>
+    <br><br>  
+</div>
+<!-- ending div for userinput toggle-->
+</div>
+
+<!-- begin finished creation content-->
+<div id="showCreationToggle" style="display: None">
+<div class="row" id="creation">
+    <br>
+    <h3 class="text-primary">Here's What You Created&nbsp;&nbsp;</h3>
+    <div id="creationAudio"></div>
+    <div id="creationText"></div>
+    <br>
+</div>
+<!--<div class="row" id="audio"></div>-->
+<div class="row" id="feedback">
+    <h5 class="text-primary">What Did You Think of The Topic?&nbsp;</h5>
+        <div>
+            <label>
+                <input type="radio" name="test" value="1" onclick="voteclick(this);" aria-label="vote topic as liked" unchecked>
+                <img src='{% static "wordgame/images/thumbs-up.svg" %}' alt="thumbs up image">
+              </label>
+              <label>
+                <input type="radio" name="test" value="0" onclick="voteclick(this);" aria-label="vote topic as disliked" unchecked>
+                <img src='{% static "wordgame/images/thumbs-down.svg" %}' alt="thumbs down image">
+              </label>
+              <br>
+              <br>
+        </div>
+
+    <div class="row">
+        <div class="col-sm-8">
+<h5 class="text-primary">Ready To Play Again? Here Are Your Options...</h5>
+We can get you a stored headline from the database that matches your preferences, a current headline (that hopefully matches your preferences), or a random local headline (it could be any topic).
+        <form action="{% url 'vote' %}" method='POST'>
+            {% csrf_token %}
+            <input type="hidden" name="sv" id="score_vector" value="{{scorevector}}">
+            <input type="hidden" name="vote" id="vote" value ="-1">
+                <button type="submit" id="default" name="default" class="btn btn-primary" aria-label="get a stored headline">Stored Headline</button>
+                <button type="submit" id="current" name="current" class="btn btn-primary" aria-label="get a current news headline">Current Headline</button>
+                <button type="submit" id="local" name="local" class="btn btn-primary" aria-label="get a local headline">Local Headline</button>
+            </form>
+        </div>
+        <div class="col-sm-4">
+            <h5 class="text-primary">Or Tell Me A Topic You Like</h5>
+            Click the microphone, wait for the message box prompt and then say a topic you like. Click the stop button when you're done.<br>
+            <button onclick="startRecording(this);" id="startRecord" name="startRecord" class="btn btn-outline-primary" aria-label="start recording"><img src='{% static "wordgame/images/mic.svg" %}' alt="start recording"></button>
+            <button onclick="stopRecording(this);" id="stopRecord" name="stopRecord" class="btn btn-outline-primary" aria-label="stop recording"><img src='{% static "wordgame/images/stop-circle.svg" %}' alt="stop recording"></button>
+                <div id="recordNotification">
+        </div>
+        </div>
+      </div>
+</div>
+<!-- end div tag for showCreation-->
+</div>
+<div class="row" id="bottom">
+    <br>
+    <p class="text text-secondary">
+    *WARNING: Pregnant women, the elderly, and children under 10 should avoid prolonged exposure to Generic Word Game. Generic Word Game contains an unstable articifical intelligence core, which, if exposed due to rupture, should not be touched, inhaled, or looked at. Discontinue use of Generic Word Game if any of the following occurs: itching, vertigo, dizziness, tingling in extremities, loss of balance, slurred speech, temporary blindness, profuse sweating, or heart palpitations. If Generic Word Game begins to smoke, get away immediately. Seek shelter and cover head. When not in use the artificial intelligence core should be kept in it's special container and kept under refrigeration. Some ingredients are unknown. Do not taunt Generic Word Game. Generic Word Game comes with a lifetime warranty.
+</p>
+</div>
+<!-- end main div -->
+</div>
+<script>
+      var rec;
+      var gumStream;
+
+      function startRecording(button) {
+      var constraints = {audio:true,video:false}
+      navigator.mediaDevices.getUserMedia(constraints).then(function(stream) {
+      console.log("got promise, initializing and recording...");
+      //tell user how recording works and change ui
+      alert("Start speaking when you see the the microphone icon turn green.");
+      audioContext = new AudioContext();
+      gumStream = stream;
+      input = audioContext.createMediaStreamSource(stream);
+      rec = new Recorder(input, {numChannels:1})
+      rec.record()
+      document.getElementById("startRecord").className = "btn btn-success";
+      console.log("recording has started...")
+      });
+  }
+
+  function stopRecording(button) {
+  e = document.getElementById("recordNotification");
+  e.innerHTML = "<br>Processing request, this may take a bit...";
+      console.log("stop button clicked");
+      rec.stop();
+      document.getElementById("startRecord").className = "btn btn-outline-primary";
+      document.getElementById("stopRecord").className = "btn btn-danger";
+      gumStream.getAudioTracks()[0].stop();
+      rec.exportWAV(postToServer);
+  }
+
+    function postToServer(blob) {
+        console.log(blob.size);
+      console.log(blob.type);
+
+      let data = new FormData;
+    data.append("audioRecording", blob);
+
+         fetch("/wordgame/audio/", {method:"POST",
+         body:data,
+        credentials:'same-origin', }).then(response =>
+        {
+            if(response.status == "200") {
+                console.log("200");
+                location.href = '/wordgame/custom';
+            }
+            else {
+                console.log("error, non 200 response");
+                alert("We're sorry we couldn't process your request. We'll send you to a new game.")
+                location.href = '/wordgame/';
+            }
+        }
+        )
+
+        }
+</script>
+</body>
+</html>

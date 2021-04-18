@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+{% extends "wordgame/base_generic.html" %}
+{% load static %}
+
+{% block content %}
+<h3 class="text-primary">Here Are Other Users Creations</h3>
+    <table class="table">
+    <thead>
+    <tr>
+        <td>Rank</td><td>Text</td><td>Vote</td>
+    </tr>
+    </thead>
+    <tbody>
+    {% for creation in creations %}
+    <tr>
+        <td>{{creation.rank}}</td>
+        <td>{{creation.text}}</td>
+        <td>
+            {% if user.is_authenticated %}
+            <form action="{% url 'creationvote' %}" method='POST'>
+            {% csrf_token %}
+                <button type="submit" name="vote-up-{{creation.id}}" value="vote-up-{{creation.id}}" aria-label="vote creation as liked">
+                    <img src='{% static "wordgame/images/thumbs-up.svg" %}' alt="thumbs up image"></button>
+                <button type="submit" name="vote-down-{{creation.id}}" value="vote-down-{{creation.id}}"  aria-label="vote creation as disliked">
+                    <img src='{% static "wordgame/images/thumbs-down.svg" %}' alt="thumbs down image"></button>
+            </form>
+
+            {% endif %}
+        </td>
+    </tr>
+{% endfor %}
+    </tbody>
+</table>
+
+{% endblock %}
