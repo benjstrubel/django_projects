@@ -106,7 +106,7 @@ class LanguageServices:
         print("trying speech to text")
         url = "https://eastus.stt.speech.microsoft.com/speech/recognition/conversation/cognitiveservices/v1?language=en-US"
         headers = {
-            'Ocp-Apim-Subscription-Key': 'ad6b74669fa84e05a99f4bb2861ddaae',
+            'Ocp-Apim-Subscription-Key': 'redacted',
             'Content-type': 'audio/wav'
         }
         resp = requests.post(url, headers=headers, data=bytes)
@@ -160,7 +160,7 @@ class CurrentHeadlineServices:
         text = entry.title + ". " + entry.summary.split("<div")[0] + "."
         return text
 
-#class for dealing with djkango blurb models
+#class for dealing with django blurb models
 class BlurbServices:
     def get_highest_cat_new(self, blurb):
         svs = blurb.scorevectornews
