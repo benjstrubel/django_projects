@@ -1,6 +1,6 @@
 from django.test import TestCase
 from .models import Blurb, User, Creation, PreferenceVector, ScoreVectorNew
-from .services import CurrentHeadlineServices, BlurbServices
+from .services import CurrentHeadlineServices, BlurbServices, LanguageServices
 
 class ModelsTestCase(TestCase):
     def setUp(self):
@@ -18,7 +18,7 @@ class ModelsTestCase(TestCase):
         self.assertIsNotNone(creation)
 
     def test_preference_vector(self):
-        cats = ["sports","entertainment","tech","politics","health"]
+        cats = ["sports","entertainment","tech","politics","health","travel","business"]
         user = User.objects.get(username='TestUser')
         for cat in cats:
             PreferenceVector.objects.create(user=user,category=cat,score=0)
@@ -41,7 +41,7 @@ class CurrentHeadlineServicesTestCase(TestCase):
         self.assertIsNotNone(headline)
 
     def test_current_headline(self):
-        cats = ["sports","entertainment","tech","politics","health"]
+        cats = ["sports","entertainment","tech","politics","health","travel","business"]
         for cat in cats:
             headline = self.cur_svc.get_current_headline(cat)
             self.assertIsNotNone(headline)
@@ -53,12 +53,23 @@ class BlurbServicesTestCase(TestCase):
     def test_blurb_score(self):
         Blurb.objects.create(id=0,text="Test blurb")
         blurb = Blurb.objects.get(id=0)
-        cats_and_scores = {"sports":.99, "entertainment" : 0.0, "tech" : 0.0, "politics" : 0.0, "health" : 0.0}
+        cats_and_scores = {"sports":.99, "entertainment" : 0.0, "tech" : 0.0, "politics" : 0.0, "health" : 0.0, "business" : 0.0, "travel" : 0.0}
         for cat,score in cats_and_scores.items():
             ScoreVectorNew.objects.create(blurb=blurb,category=cat,score=0.0)
 
         highest_score_cat = BlurbServices.get_highest_cat_new(blurb)
         self.assertEquals(highest_score_cat, 'sports')
+
+class LanguageServicesTestCase(TestCase):
+    def setUp(self):
+        self.lang_svc = LanguageServices()
+
+    def test_text_to_speech(self):
+        test_text = "This is a speech to text test."
+        audio_bytes = self.lang_svc.text_to_speech(test_text, "dummyid")
+        self.assertIsNotNone(audio_bytes)
+
+
 
 
 

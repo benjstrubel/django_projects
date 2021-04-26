@@ -56,6 +56,8 @@ function setScoreVectorColors() {
     setAScoreVectorColor("pv");
     setAScoreVectorColor("sv");
     setAScoreVectorColor("tv");
+    setAScoreVectorColor("rv");
+    setAScoreVectorColor("bv");
 }
 
 function buildSentence() {
@@ -239,7 +241,9 @@ function closeHelp() {
                 <td id="hv" data-score="{{ scorevector.health}}">Health</td>
                 <td id="pv" data-score="{{ scorevector.politics}}">Politics</td>
                 <td id="sv" data-score="{{ scorevector.sports}}">Sports</td>
-                <td id="tv" data-score="{{ scorevector.tech}}">Technology</td>
+                <td id="tv" data-score="{{ scorevector.technology}}">Technology</td>
+                <td id="rv" data-score="{{ scorevector.travel}}">Travel</td>
+                <td id="bv" data-score="{{ scorevector.business}}">Business</td>
             </tr>
         </tbody>
 </table>

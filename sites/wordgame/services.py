@@ -1,71 +1,67 @@
 import os
 import random
 import time
+import logging
 import feedparser
 import requests
 from scipy.spatial.distance import cosine
-import struct
 import json
 import datetime
 import pyttsx3
+from .constants import Constants
 from .models import Blurb
 
-class PreferenceVector:
-    INCREMENT = .2 #pref increment factor
+logging.config.dictConfig({
+    'version': 1,
+    'disable_existing_loggers': False,
+    'formatters': {
+        'console': {
+            'format': '%(name)-12s %(levelname)-8s %(message)s'
+        },
+    },
+    'handlers': {
+        'console': {
+            'class': 'logging.StreamHandler',
+            'formatter': 'console'
+        },
+    },
+    'loggers': {
+        '': {
+            'level': 'DEBUG',
+            'handlers': ['console']
+        }
+    }
+})
+logger = logging.getLogger(__name__)
+
+class PreferenceServices:
+    INCREMENT = .2  # pref increment factor
 
     def __init__(self):
-        self.prefs = {}
+        pass
 
-    def like(self, category):
-        self.prefs[category] += self.INCREMENT
-
-    def dislike(self,category):
-        self.prefs[category] -= self.INCREMENT
-
-
-#utlity class w/ static functions for manipulating preference vector
-class PrefVector:
-    INCREMENT = .2 #pref increment factor
-
-    #record user vote
-    @staticmethod
-    def record_vote(prefvector, category, vote):
-        #record vote
+    def record_vote(self, session_pref_vec, category, vote):
+        logger.debug("before vote: " + str(session_pref_vec))
         if vote == "1":
-            print("voting 1...")
-            prefvector = PrefVector.like(prefvector, category)
+            logger.info("like vote")
+            self.like(session_pref_vec,category)
         elif vote == "0":
-            print("voting 0...")
-            prefvector = PrefVector.dislike(prefvector, category)
-        return prefvector
+            logger.info("DISlike vote")
+            self.dislike(session_pref_vec,category)
+        logger.debug("after vote: " + str(session_pref_vec))
+        return session_pref_vec
 
-    #record a like vote
-    @staticmethod
-    def like(pv, category):
-        pv[category] += PrefVector.INCREMENT
-        if pv[category] > 1:
-            pv[category] = 1
-        return pv
 
-    #record dislike
-    @staticmethod
-    def dislike(pv, category):
-        pv[category] -= PrefVector.INCREMENT
-        if pv[category] < 0:
-            pv[category] = 0
-        return pv
+    def like(self,session_pref_vec, category):
+        session_pref_vec.prefs[category] += self.INCREMENT
+        if session_pref_vec.prefs[category] > 1:
+            session_pref_vec.prefs[category] = 1
 
-    #convert internal dict to numeric vector
-    @staticmethod
-    def get_as_vector(prefvector):
-        #hardcoding to make sure order is correct
-        v = list()
-        v.append(prefvector['entertainment'])
-        v.append(prefvector['health'])
-        v.append(prefvector['politics'])
-        v.append(prefvector['sports'])
-        v.append(prefvector['tech'])
-        return v
+    def dislike(self, session_pref_vec, category):
+        session_pref_vec.prefs[category] -= self.INCREMENT
+        if session_pref_vec.prefs[category] < 0:
+            session_pref_vec.prefs[category] = 0
+
 
 #class for voice/text manipulation
 class LanguageServices:
@@ -78,7 +74,7 @@ class LanguageServices:
         engine.setProperty('voice', 'english-north')
         #library only saves to disk, extra I/O for no reason :(
         engine.save_to_file(text, fullfilepath)
-        print("saving to file running and waiting...")
+        logger.info("saving to file running and waiting...")
         engine.runAndWait()
 
         #wait for file to be created, not sure why django runs runAndWait async
@@ -92,27 +88,26 @@ class LanguageServices:
         try:
             with open(fullfilepath, "rb") as f:
                 bytes = f.read()
-            print("file found and read")
+            logger.info("file found and read")
             #remove file
             os.remove(fullfilepath)
         except Exception as e:
-            print("file not found")
-            print(e)
+            logger.error("file not found",e)
             bytes = None #set as none, handled by views
         return bytes
 
     #convert speech to text using azure cognition svcs
     def speech_to_text(self, bytes):
-        print("trying speech to text")
+        logger.info("trying speech to text")
         url = "https://eastus.stt.speech.microsoft.com/speech/recognition/conversation/cognitiveservices/v1?language=en-US"
         headers = {
             'Ocp-Apim-Subscription-Key': 'redacted',
             'Content-type': 'audio/wav'
         }
         resp = requests.post(url, headers=headers, data=bytes)
-        print("got resp from azure:",resp)
+        logger.debug("got resp from azure:",resp)
         guess = json.loads(resp.content.decode())
-        print("guess is:",guess["DisplayText"])
+        logger.info("guess is:",guess["DisplayText"])
         return guess["DisplayText"]
 
 
@@ -121,18 +116,17 @@ class CurrentHeadlineServices:
     #function to get a local headline based on user ip via ip-api.com
     def get_local_headline(self, ip):
         try:
-            print("trying geo location for: ", ip)
+            logger.info("trying geo location for: ", ip)
             url = "http://ip-api.com/json/" + ip
             resp = requests.get(url)
-            print("response from ip-api",resp)
+            logger.debug("response from ip-api",resp)
             jsontext = json.loads(resp.content.decode())
             #search for just state and country, city headlines are short and not good for mad libs
             searchterm = jsontext['regionName'] + "," + jsontext['country']
             searchterm = searchterm.replace(" ","")
             text = self.get_search_headline(searchterm)
         except Exception as e:
-            print("error getting ip location")
-            print(e)
+            logger.error("error getting ip location",e)
             text = "-1"
         return text
 
@@ -147,13 +141,16 @@ class CurrentHeadlineServices:
 
     #get a current headline
     def get_current_headline(self, category):
+        logger.info("getting current headline for " + category)
         #pref category to url dictionary
         urls = {
             "entertainment" : "http://rss.cnn.com/rss/cnn_showbiz.rss",
             "health" : "http://rss.cnn.com/rss/cnn_health.rss",
             "politics" : "http://rss.cnn.com/rss/cnn_allpolitics.rss",
             "sports" : "https://www.cbssports.com/rss/headlines/",
-            "tech" : "http://rss.cnn.com/rss/cnn_tech.rss"
+            "technology" : "http://rss.cnn.com/rss/cnn_tech.rss",
+            "business" : "http://rss.cnn.com/rss/money_latest.rss",
+            "travel" : "http://rss.cnn.com/rss/cnn_travel.rss"
         }
         feed = feedparser.parse(urls[category])
         entry = feed.entries[random.randrange(0,len(feed.entries))]
@@ -162,45 +159,48 @@ class CurrentHeadlineServices:
 
 #class for dealing with django blurb models
 class BlurbServices:
-    def get_highest_cat_new(self, blurb):
-        svs = blurb.scorevectornews
-        #get highest cat
 
-
-    #get highest category for blurb
     def get_highest_cat(self, blurb):
-        sv = blurb.scorevector
-        #horrible code :( needs to be optimized
-        vect = [sv.entertainment_score,sv.health_score,sv.politics_score,sv.sports_score,sv.tech_score]
-        print("finding max cat for this blurb vector:", vect)
-        cats = ["entertainment","health","politics","sports","tech"]
-        maxcat = cats[vect.index(max(vect))]
-        print("max cat is:",maxcat)
-        return maxcat
+        scorevectors = blurb.scorevectornew
+        #get highest cat
+        max_category = (Constants.CATEGORY_DEFAULT,0)
+        for a_scorevector in scorevectors:
+            if a_scorevector.score > max_category[1]:
+                max_category = (a_scorevector.category,a_scorevector.score)
+        return max_category[0]
 
-    #get a blurb from the db based on user preference
-    def get_blurb(self, prefvector):
-        MAX_BLURBS = 6 #max results to choose random blurb from
-        print("finding blurb for this prefector:",prefvector)
+    def get_blurbs_scores_as_dict(self,id):
+        blurb = Blurb.objects.get(id=id)
+        scores = blurb.scorevectornew_set.all()
+        dict = {score.category:score.score for score in scores}
+        return dict
+
+    def get_blurb(self,prefvector_obj):
+        logger.info("finding blurb for this prefector:", prefvector_obj)
+        #get user prefers as vector
+        user_vec = prefvector_obj.get_as_vec_order_by_cat()
         #store pk_id:cosine_sim_score
         sim_scores = {}
 
         #calc all cosine sim scores
-        #TODO: rewrite to use heap to avoid sorting entire set at end?
         for blurb in Blurb.objects.all():
-            sv = blurb.scorevector
-            blurb_vector = [sv.entertainment_score,sv.health_score,sv.politics_score,sv.sports_score,sv.tech_score]
-            cosine_sim_score = 1 - cosine(prefvector,blurb_vector)
+            #initiliaze blank dictionary with correct order
+            blurb_scores = {key : 0 for key in Constants.CATEGORIES}
+            scores_list = blurb.scorevectornew_set.all()
+            for score in scores_list:
+                blurb_scores[score.category] = score.score
+            #convert to vector
+            blurb_vec = [v for v in blurb_scores.values()]
+            cosine_sim_score = 1 - cosine(user_vec,blurb_vec)
             sim_scores[blurb.pk] = cosine_sim_score
 
         #order by cosine sim scores and get random high score
         sorted_sim_scores = sorted(sim_scores.items(),key=lambda x: x[1],reverse=True)
         #
-        max = MAX_BLURBS if len(sorted_sim_scores) > MAX_BLURBS else len(sorted_sim_scores)
-        print("max blurbs is: ", max)
+        max = Constants.MAX_BLURBS_TO_CHOOSE_FROM if len(sorted_sim_scores) > Constants.MAX_BLURBS_TO_CHOOSE_FROM else len(sorted_sim_scores)
+        logger.debug("max blurbs is: ", max)
         idx = random.randrange(0,max)
-        print("random index is: ", idx)
-        #pk = next(iter(sorted_sim_scores))[0]
+        logger.debug("random index is: ", idx)
         pk = sorted_sim_scores[idx][0]
 
         blurb = Blurb.objects.get(pk=pk)
@@ -212,22 +212,6 @@ class BlurbServices:
         nlp = NLPServices()
         jsontext = nlp.tag_blurb(blurb.text)
         return jsontext
-
-#django to nlp server message class
-#static methods to create and decode messages
-class Message:
-    @staticmethod
-    def encode_msg_size(int_size):
-        return struct.pack("<I", int_size)
-
-    @staticmethod
-    def decode_msg_size(size_bytes):
-        return struct.unpack("<I", size_bytes)[0]
-
-    @staticmethod
-    def create_msg(content_bytes):
-        size = len(content_bytes)
-        return Message.encode_msg_size(size) + content_bytes
 
 #class for communicating with nlp server
 class NLPServices:
@@ -255,22 +239,22 @@ class NLPServices:
                 resp = r.json()
                 return resp
             except:
-                print("error parsing server response")
+                logger.error("error parsing server response")
         else:
-            print(r.status_code)
+            logger.error("non 200 status code " + str(r.status_code))
         return {}
 
     #main function to prepare a blurb to be rendered by views
     def prep_blurb(self, json_text):
+        logger.debug("prepping blurb...")
         WORD_REPLACE_COUNT = 3 #replace 3 words
         for x in range(0,WORD_REPLACE_COUNT):
             json_text = self.replace_pos(json_text)
-        print("text with removed words will be...")
-        print(json_text)
+        logger.info("text with removed words will be " + str(json_text))
         return json_text
 
     def replace_pos(self,json_text):
-        print('replacing pos...')
+        logger.debug('replacing pos...')
         MAXLOOPTIME = 1
         PTB_TO_ENGLISH = {
             'JJ' : 'Adjective',
@@ -304,7 +288,7 @@ class NLPServices:
                 json_text['pos'][idx] = PTB_TO_ENGLISH[json_text['pos'][idx]] #make spacy upos readable by users
                 notdone = False
             if datetime.datetime.now().timestamp()-time > MAXLOOPTIME:
-                print('max loop time exceeded')
+                logger.error('max loop time exceeded')
                 notdone = False
 
         return json_text
