@@ -375,7 +375,7 @@ def dashboard(request):
     return render(request, 'wordgame/dashboard.html', context)
 
 def register(request):
-    """Handlenew user gistration
+    """Handle new user registration
 
     Args:
         param1 (request): http request

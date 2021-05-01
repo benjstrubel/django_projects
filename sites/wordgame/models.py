@@ -8,6 +8,14 @@ class SessionPreferenceVector:
         self.prefs = {}
 
     def get_max_cat(self):
+        """Get max category for session
+
+        Args:
+            None
+
+        Returns:
+            String max category
+        """
         maxcat = ""
         maxval = -1
         for key,value in self.prefs.items():
@@ -17,32 +25,81 @@ class SessionPreferenceVector:
         return maxcat
 
     def get_as_vec_order_by_cat(self):
+        """Get the preferences in form of numeric vector
+            ordered specified by order of category constant list
+
+        Args:
+            None
+
+        Returns:
+            List
+        """
         v = []
         for cat in Constants.CATEGORIES:
             v.append(self.prefs[cat])
         return v
 
     def initialize_as_default(self):
+        """Initialize preferences to default
+
+        Args:
+            None
+
+        Returns:
+            None
+        """
         for cat in Constants.CATEGORIES:
             self.prefs[cat] = 0.5
 
     def set_categories_from_preference_vectors(self, list):
+        """Set category preferences scores from numeric vector
+        List order determiend by constants category list
+
+        Args:
+            param1 (list): List of scores as numeric vector
+
+        Returns:
+            None
+        """
         #initiliaze as default then replace with user settings
         self.initialize_as_default()
         for prefvec in list:
             self.prefs[prefvec.category] = prefvec.score
 
-
     def encode(self):
+        """Define JSON encoding explicitly as just preference dict
+
+        Args:
+            None
+
+        Returns:
+            Dict: Preferences
+        """
         return self.prefs
 
     def decode(self,dct):
+        """Define explicit JSON decoding
+
+        Args:
+            param1 (dict): JSON dict
+
+        Returns:
+            SessionPreferenceVector object
+        """
         dct = json.loads(dct)
         spv = SessionPreferenceVector()
         spv.prefs = dct
         return spv
 
     def __str__(self):
+        """To string
+
+        Args:
+            None
+
+        Returns:
+            String
+        """
         return json.dumps(self.prefs)
 
 class Creation(models.Model):
@@ -64,22 +121,22 @@ class ScoreVectorNew(models.Model):
     category = models.TextField()
     score = models.FloatField()
 
-class ScoreVector(models.Model):
-    blurb = models.OneToOneField(Blurb, on_delete=models.CASCADE)
-    entertainment_score = models.FloatField()
-    health_score = models.FloatField()
-    politics_score = models.FloatField()
-    sports_score = models.FloatField()
-    tech_score = models.FloatField()
+#class ScoreVector(models.Model):
+#    blurb = models.OneToOneField(Blurb, on_delete=models.CASCADE)
+#    entertainment_score = models.FloatField()
+#    health_score = models.FloatField()
+#    politics_score = models.FloatField()
+#    sports_score = models.FloatField()
+#    tech_score = models.FloatField()
 
     #override tostring, now to json format string
-    def __str__(self):
-        sv_dict = {
-            "entertainment": self.entertainment_score,
-            "health": self.health_score,
-            "politics": self.politics_score,
-            "sports": self.sports_score,
-            "tech": self.tech_score
-        }
-        return json.dumps(sv_dict)
+#    def __str__(self):
+#        sv_dict = {
+#            "entertainment": self.entertainment_score,
+ #           "health": self.health_score,
+ #           "politics": self.politics_score,
+ #           "sports": self.sports_score,
+ #           "tech": self.tech_score
+ #       }
+ #       return json.dumps(sv_dict)
 
