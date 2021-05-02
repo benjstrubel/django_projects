@@ -113,7 +113,7 @@ def get_or_create_prefvector(request):
         logger.debug("returning existing session vector")
         serialized_session_vector = request.session.get('preferencevector')
         #serialized_session_vector = '{"business": 0.5, "technology": 0.5, "sports": 0.5, "entertainment": 0.5, "politics": 0.5, "travel": 0.5, "health": 0.5}'
-        print(serialized_session_vector)
+        logger.debug(serialized_session_vector)
         return json.loads(serialized_session_vector,cls=SessionPreferenceVector)
 
     if request.user.is_authenticated:
@@ -122,6 +122,8 @@ def get_or_create_prefvector(request):
         pref_vec_list =  user.preferencevector_set.all()
         new_session_pref_vec = SessionPreferenceVector()
         new_session_pref_vec.set_categories_from_preference_vectors(pref_vec_list)
+        # store vect in session
+        request.session['preferencevector'] = json.dumps(new_session_pref_vec, default=SessionPreferenceVector.encode)
         return new_session_pref_vec
 
     logger.debug("creating new sessionprefvector")

@@ -272,7 +272,7 @@ class BlurbServices:
         Returns:
             Blurb: blurb object that matches user preferences
         """
-        logger.info("finding blurb for this prefector:", prefvector_obj)
+        logger.info("finding blurb for this prefector:" + str(prefvector_obj))
         #get user prefers as vector
         user_vec = prefvector_obj.get_as_vec_order_by_cat()
         #store pk_id:cosine_sim_score
@@ -294,9 +294,9 @@ class BlurbServices:
         sorted_sim_scores = sorted(sim_scores.items(),key=lambda x: x[1],reverse=True)
         #
         max = Constants.MAX_BLURBS_TO_CHOOSE_FROM if len(sorted_sim_scores) > Constants.MAX_BLURBS_TO_CHOOSE_FROM else len(sorted_sim_scores)
-        logger.debug("max blurbs is: ", max)
+        logger.debug("max blurbs is: " + str(max))
         idx = random.randrange(0,max)
-        logger.debug("random index is: ", idx)
+        logger.debug("random index is: " + str(idx))
         pk = sorted_sim_scores[idx][0]
 
         blurb = Blurb.objects.get(pk=pk)

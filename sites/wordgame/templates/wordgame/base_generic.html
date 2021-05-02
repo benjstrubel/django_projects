@@ -9,27 +9,77 @@
       <!-- CSS from getbootstrap.com -->
     <!-- icons from feathericons.com/ -->
     <link rel='stylesheet' type='text/css' media='screen' href='{% static "wordgame/css/bootstrap.min.css" %}'>
+    <script src='{% static "wordgame/js/recorder.js" %}'></script>
 </head>
 <body>
 <div class="container" id="mainContainer">
-      <div id="heading" class="row">
+
+    <div id="heading" class="row">
         <div class="col-11">
     <h1 class="text-primary">Generic Non-Trademarked Word Replacement Game*</h1>
     <h5>Now with machine learning and a British accent!</h5>
     <br>
     </div>
-
-          <div id="login" class="col-1">
-{% if user.is_authenticated %}
-              Hello, {{ user.username|default:'Guest' }}!
-              <p><a href="/wordgame/accounts">My Account</a></p>
-              {% else %}
-              <p><a href="/wordgame/accounts/login">Login</a>
-              <br>or<br>
-              <a href="{% url 'register' %}">Register</a></p>
-              {% endif %}
-          </div>
+    <div id="helpButton" class="col-1">
+        <p class="text-right">
+        <button onClick="showHelp();" class="btn btn-outline-primary"><img src='{% static "wordgame/images/help-circle.svg" %}' alt="help button"></button>
+        </p>
     </div>
+    </div>
+
+    <div id="helpContainer" style="display: None">
+        <div class="row">
+            <div class="col-11">
+      <h5 class="text-primary">How To Use This Crazy Contraption</h5>
+</div>
+<div class="col-1">
+        <p class="text-right">
+            <button onClick="closeHelp();" class="btn btn-primary text-white" aria-label="close help screen">X</button>
+        </p>
+    </div>
+    </div>
+    <div class="row">
+        <div class="col">
+    <p>
+        The category bar at the top shows you what your mystery sentences will be about. The darker the topic label the more the sentence is about that topic.
+    </p><p>
+        Think up a funny word for the parts of speech and fill them in.
+    </p>
+    <p>
+        Click the "Show It" button too see what you created.<br>
+        Click "Say It" to have the creation read to you in a bad robotic voice. Please be aware that the hamsters powering our servers are elderly so it may take some time for the audio file to be created.
+    </p>
+    <p>
+        The game tries to learn what topics you like so click the thumbs up or thumbs down icon so we can learn what you like.
+    </p>
+    <p>
+        When you are ready to play again you can click the "Stored Headline" button to get another game from our database. If you want a current news headline click the "Current Headline" button. If you want try a headline based on your location click the "Local Headline" button.
+    </p>
+        <br></div>
+    </div>
+    </div>
+
+    <div class="row">
+<div class="col-4">
+    <a href="/wordgame">Main Game</a>
+</div>
+<div class="col-4">
+    <a href="/wordgame/creations">View Other User's Creations</a>
+</div>
+                <div class="col-4">
+            {% if user.is_authenticated %}
+            <p>
+            Hello, {{ user.username|default:'Guest' }}!
+              (<a href="/wordgame/dashboard/">My Account</a> | <a href="{% url 'logout' %}">Logout</a>)
+            </p>
+              {% else %}
+            Hello, Guest
+              <p><a href="/wordgame/accounts/login">Login</a> or <a href="{% url 'register' %}">Register</a></p>
+              {% endif %}
+        </div>
+    </div>
+
+
 {% block content %}
 {% endblock %}
 

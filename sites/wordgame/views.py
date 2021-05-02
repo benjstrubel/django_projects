@@ -133,14 +133,17 @@ def index(request):
     Returns:
         Render method
     """
-    #get user pref vector, if not set render new page so user can choose fav topic
-    #prefvector = request.session.get('prefvector')
-    prefvector_str = request.session.get('preferencevector')
-    if prefvector_str is None:
-        return HttpResponseRedirect('/wordgame/new')
-
-    prefvector_obj = json.loads(prefvector_str,cls=SessionPreferenceVector)
-    print(prefvector_obj.__class__)
+    #if user is logged in, get their saved prefs
+    if request.user.is_authenticated:
+        prefvector_obj = get_or_create_prefvector(request)
+    #if not check if in session
+    else:
+        prefvector_str = request.session.get('preferencevector')
+        if prefvector_str is None:
+            return HttpResponseRedirect('/wordgame/new')
+        else:
+            prefvector_obj = json.loads(prefvector_str,cls=SessionPreferenceVector)
+            logger.debug(prefvector_obj.__class__)
 
     #get blurb based on user prefs
     blurb_svcs = BlurbServices()
